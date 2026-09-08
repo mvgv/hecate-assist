@@ -1,0 +1,12 @@
+# Reverse proxy para o monolito (Streamlit em app:8501).
+# CADDY_BASIC_AUTH_USER / CADDY_BASIC_AUTH_HASH vêm do .env (hash gerado com
+# `caddy hash-password`). Com DOMAIN definido no .env, Caddy provisiona TLS
+# automatico em :443; sem DOMAIN, o default "80" faz fallback para HTTP puro
+# (mesmo bloco - nao duplicar o site address, ou o Caddy falha ao subir).
+
+{$DOMAIN:80} {
+	basic_auth {
+		{$CADDY_BASIC_AUTH_USER} {$CADDY_BASIC_AUTH_HASH}
+	}
+	reverse_proxy app:8501
+}

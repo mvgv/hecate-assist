@@ -1,0 +1,72 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
+      - ./deploy/Modelfile:/Modelfile:ro
+    environment:
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_KEEP_ALIVE=-1
+    mem_limit: 6g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "ls"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  model-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      - ./deploy:/deploy:ro
+      - ./models:/models:ro
+    entrypoint: ["ollama", "create", "medassist", "-f", "/deploy/Modelfile"]
+    restart: "no"
+    profiles: ["full"]
+
+  app:
+    build: .
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - MEDASSIST_LLM_PROVIDER=ollama
+      - MEDASSIST_MODEL=medassist
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - app_data:/app/data
+      - app_logs:/app/logs
+    mem_limit: 4g
+    restart: unless-stopped
+    expose:
+      - "8501"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  caddy:
+    image: caddy:2
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    restart: unless-stopped
+    profiles: ["full"]
+
+volumes:
+  ollama_models: {}
+  app_data: {}
+  app_logs: {}
+  caddy_data: {}
