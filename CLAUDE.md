@@ -67,6 +67,21 @@ subir ao HF Hub (repo privado, tag `v1`) → `hf download ... --local-dir models
 `docker compose --profile full up -d` (agora `model-init` usa o GGUF real, Modelfile sem edição) →
 validar fluxo na UI + guardar curvas de loss p/ o relatório.
 
+**Nível 2.a — datasets externos do enunciado (MedQuAD + PubMedQA) NÃO estão integrados.**
+Por desenho (§5.5) o RAG usa só os protocolos sintéticos; os datasets HF eram previstos apenas
+como fatia do dataset de fine-tuning (`docs/finetuning.md` §2: MedQuAD ~20% "conhecimento geral +
+robustez"; PubMedQA opcional). Estado real hoje:
+- `data/raw/` só tem `.gitkeep` — `medassist download-data` nunca rodou.
+- `download.py` cobre só MedQuAD e via clone do GitHub `abachaa/MedQuAD` (não o dataset HF).
+  PubMedQA não tem nenhum código de download.
+- `build_dataset.py` lê só `data/synthetic/` — **não** mistura MedQuAD. O notebook do Colab faz
+  `load_dataset("json", data_files="train.jsonl")`, ou seja espera o `train.jsonl` já com a fatia
+  MedQuAD dentro. Ninguém produz essa fatia hoje.
+Para fechar: (1) script de download real dos dois via `datasets` do HF; (2) estender
+`build_dataset.py` para amostrar 500–1000 pares de MedQuAD, formatar como chat e misturar antes do
+split 95/5 — ou fazer isso à mão numa célula do notebook; (3) registrar a decisão (usar em inglês
+vs. traduzir amostra) no relatório.
+
 Recomendação: fazer o Nível 1 primeiro (stack completo ponta a ponta com LLM real); Nível 2 é
 entrega separada.
 
