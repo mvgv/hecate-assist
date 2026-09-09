@@ -35,9 +35,36 @@ e `stop` corretos em `ollama show`) → o problema é o fine-tune.
 5. FAQs sintéticas **ausentes** (0 ex.) — era a melhor fonte de citação + tom.
 O arquivo em si está íntegro (UTF-8, zero replacement chars).
 
-**Notebook reescrito para v2 (2026-09-09) — pronto, NÃO rodado ainda.** Ver "Composição do dataset
-v2" e "Pendências" abaixo. Decisão: dataset limpo (protocolo + FAQ) + fatia minoritária de MedQuAD
-**em inglês, sem tradução**.
+**v2 rodada (2026-09-09) — GGUF gerado, TESTADA no Docker full, FALHOU de novo.** `docker compose
+--profile full` subiu OK, `model-init` criou `medassist`, `ollama show` correto. Mas: `medassist ask`
+travou ~19 min numa chamada de triagem (geração sem EOS); testes com `num_predict` capado mostram
+`done_reason: length` + loop. Saída degenerada: *"Estes recursos abordam o diagnóstico ou gestão da
+sepse… - MedlinePlus Enciclopédia: Sepse, 1 - …"* repetido.
+
+**Diagnóstico da v2 (2026-09-09).** O `train_v2.jsonl` (216 ex., em `../docs/train_v2.jsonl`) É a
+estrutura desenhada (116 PT-BR + 100 MedQuAD EN), mas a **fatia MedQuAD EN é de qualidade ruim**:
+- **29/100** são "These resources address the diagnosis or management of X: - Genetic Testing
+  Registry… - MedlinePlus Encyclopedia…" (lista de links, zero conduta).
+- **34/100** começam repetindo a pergunta ("How might lipedema be treated? Treatment options…").
+O modelo aprendeu esse registro (46% do dataset, 2 épocas) e **reproduz em PT-BR** quando o system
+prompt pede PT-BR. Idioma não era o problema — o **conteúdo** do MedQuAD é. Traduzir bem não
+resolveria: lista de links traduzida continua lista de links.
+
+**v3 (2026-09-09) — notebook + dataset prontos, NÃO rodado ainda.** Decisão: **treinar só nos ~116
+PT-BR limpos** (protocolo + FAQ), sem MedQuAD (`N_MEDQUAD_EN=0` default). Guia §1: fine-tune ensina
+comportamento, RAG fornece fatos — 116 exemplos limpos bastam. `docs/train_v3.jsonl` gerado por
+`scripts/gen_dataset_v3.py` (116 ex., 90% citam) — **subir para `MyDrive/medassist/train_v3.jsonl`**
+e rodar com `REBUILD=False` (célula 3 só carrega). 3 épocas (dataset pequeno), `train_on_responses_only`,
+sanity check obrigatório antes do export.
+
+**Performance no CPU (2026-09-09).** A trava de 19 min foi geração sem EOS + sem teto. Adicionados:
+`OllamaProvider` agora passa `num_predict` (768) e `client_kwargs={"timeout": 240}` — geração
+descontrolada estoura em ~1 min e cai em `resposta_segura` em vez de travar. `deploy/Modelfile` tem
+`PARAMETER num_predict 768`. Configuráveis via `MEDASSIST_OLLAMA_NUM_PREDICT` / `_OLLAMA_TIMEOUT` /
+`_OLLAMA_NUM_CTX`. Ao iterar no fine-tune: testar o modelo direto (`curl .../api/chat` com
+`num_predict` capado) ANTES do grafo inteiro; `MEDASSIST_MAX_TENTATIVAS=1` corta o loop de
+regeneração. `OLLAMA_KEEP_ALIVE=-1` já mantém o modelo quente. Um modelo sadio gera ~12 tok/s
+(≈20-40 s/resposta); o grafo faz até 5 chamadas por `ask`.
 
 **Validado rodando de verdade** (não só testes unitários): `docker build` e
 `docker compose up app ollama` com os dois containers `healthy`, entrypoint rodando `seed-db`/`ingest`
@@ -60,52 +87,54 @@ docker exec hecate-assist-app-1 medassist ask "qual o protocolo de sepse?"
 `pytest tests/test_graph.py` — 10/10 passando, incluindo a regressão
 `test_llm_indisponivel_na_triagem_ambigua_cai_em_resposta_segura`.
 
-### Pendências — RODAR o fine-tuning v2 e fechar o Nível 2
+### Pendências — RODAR o fine-tuning v3 e fechar o Nível 2
 
-**Onde paramos (2026-09-09):** notebook v2 reescrito e commitado, **ainda não rodado**. Infra local
-100% OK (Docker `--profile full`, `ollama create`, grafo wired) — o que quebrou na v1 foi só o
-**modelo/dataset**. Amanhã: rodar o notebook v2 no Colab.
+**Onde paramos (2026-09-09):** notebook v3 + `docs/train_v3.jsonl` prontos e commitados, **não
+rodado**. Infra Docker `--profile full` 100% validada nesta sessão (build, `model-init`, `ollama
+show`, grafo). O que quebra é só o **modelo** — v1 e v2 degeneraram (ver Status).
 
-**Passo 1 — preparar o Drive.** Copiar `data/processed/train.jsonl` **e** `data/processed/val.jsonl`
-para `MyDrive/medassist/` (a célula de mount agora usa os dois). O `train_mixed.jsonl` da v1 pode
-ficar — a v2 grava um cache novo (`train_v2.jsonl`) e não toca nele.
+**Passo 1 — preparar o Drive.** Subir para `MyDrive/medassist/`:
+- `docs/train_v3.jsonl` → **`train_v3.jsonl`** (é o dataset; a célula 3 com `REBUILD=False` só carrega)
+- `data/processed/train.jsonl` e `data/processed/val.jsonl` (train.jsonl é fallback se não houver
+  `train_v3.jsonl`; val.jsonl é usado no `eval_dataset`)
 
-**Passo 2 — rodar o notebook v2** (`notebooks/02_finetune_colab.ipynb`), runtime GPU:
-1. Células 1-2 (install, mount). Não precisa mais de GPU para a célula de dataset (sem tradução).
-2. Célula 3 (dataset v2): confere no output que **PT-BR ≥ 55%** e MedQuAD EN ≈ 100. `REBUILD=True`
-   se quiser refazer o `train_v2.jsonl`.
-3. Célula 4 (train): já tem `train_on_responses_only`, `eval_dataset` (val) e `eval_strategy=epoch`.
-   Olhar a **eval loss** ao fim de cada época — se subir na 2ª, baixar `EPOCHS` para 1 ou `LR` p/ 1e-4.
-4. Célula 4b (sanity check — NOVA): gera 3 respostas e imprime `cita [PROT-...]` / `parou (EOS)`.
-   **Só seguir para o export se as 3 citarem e pararem sozinhas.** Se degenerar → o problema ainda
-   é o dataset, não hiperparâmetro (guia §7 item 4).
-5. Células de export (5) → `medassist-q4_k_m.gguf` no Drive.
+**Passo 2 — rodar o notebook v3** (`notebooks/02_finetune_colab.ipynb`), runtime GPU:
+1. Células 1-2 (install, mount).
+2. Célula 3: deve imprimir `cache -> 116 exemplos de .../train_v3.jsonl`. Se imprimir "nucleo
+   limpo / expansao prot" é porque não achou o `train_v3.jsonl` no Drive (subiu?).
+3. Célula 4 (train): 3 épocas, `train_on_responses_only`, `eval_dataset`. Olhar a **eval loss** por
+   época — se subir na 3ª, `EPOCHS=2`.
+4. Célula 4b (sanity check): 3 respostas + `cita [PROT-...]` / `parou (EOS)`.
+   **Só exportar se as 3 citarem e pararem sozinhas.**
+5. Células de export → `medassist-q4_k_m.gguf` no Drive.
 
-**Passo 3 — export + teste local** (infra já validada):
-baixar o GGUF para `models/medassist-q4_k_m.gguf` (gitignore — não versionar/pushar) →
-`docker compose --profile full up -d --build ollama model-init app` (sem `caddy` → dispensa
-`CADDY_BASIC_AUTH_HASH`) → `ollama create` → smoke test. Depois `medassist ask "qual o protocolo de
-sepse?"` deve **gerar** resposta (não cair em `resposta_segura`).
-`python -m medassist.finetune.evaluate` base vs. tuned → `docs/avaliacao.md`.
+**Passo 3 — teste local** (infra já validada nesta sessão):
+baixar o GGUF para `models/medassist-q4_k_m.gguf` (gitignore) → `docker compose --profile full up -d
+--build ollama model-init app` → `ollama create` roda no `model-init`.
+- **Antes do grafo**, testar o modelo cru:
+  `docker exec hecate-assist-app-1 sh -c 'curl -s http://ollama:11434/api/chat -d "{\"model\":\"medassist\",\"stream\":false,\"options\":{\"num_predict\":300},\"messages\":[{\"role\":\"user\",\"content\":\"Qual a conduta inicial na sepse?\"}]}"'`
+  → tem que vir `done_reason: "stop"` (não `"length"`), citar `[PROT-...]`, sem loop.
+- Só então: `docker exec hecate-assist-app-1 medassist ask "qual o protocolo de sepse?"` deve
+  **gerar** (não cair em `resposta_segura`). Opcional p/ acelerar: `-e MEDASSIST_MAX_TENTATIVAS=1`.
+- `python -m medassist.finetune.evaluate` base vs. tuned → `docs/avaliacao.md`.
 
-### Composição do dataset de fine-tuning v2 (2026-09-09) — só dados limpos
+### Composição do dataset de fine-tuning v3 (2026-09-09) — só PT-BR limpo
 
-`build_dataset.py` **não** foi alterado; a mistura é feita na **célula 3 do notebook**. A v1
-(traduzida com opus-mt) foi descartada — ver diagnóstico no Status acima. A v2:
-- **Núcleo limpo:** `data/processed/train.jsonl` **inteiro** (68 ex.: 12 protocolo + 56 FAQ), 100%
-  citam `[PROT-NNN §x]`, PT-BR clínico. É o gradiente de estilo.
-- **Expansão dos protocolos:** as 12 entradas `"Explique o protocolo ..."`, 4 fraseados cada
-  (~48 ex.) — reforço do formato de citação.
-- **MedQuAD (amostra) EN, SEM tradução:** `N_MEDQUAD_EN` (default **100**), sob um `system` **em
-  inglês próprio** e **sem exigir citação** — dá amplitude de conhecimento sem competir com o
-  contrato de formato PT-BR. Guia `../docs/finetuning.md` §2, plano A ("usar como está").
-  Subir esse número afrouxa o sinal PT-BR/citação; a célula avisa se PT-BR < 55%.
-- **Fecho PT-BR rotacionado** entre 4 fraseados (era 1 frase idêntica em 100% → pouca diversidade).
-- **Ficam de fora:** tradução opus-mt, PubMedQA, exemplos de segurança (guardrails = grafo).
-- Cache: `Drive/MyDrive/medassist/train_v2.jsonl` (`REBUILD=True` refaz). **PubMedQA e a tradução
-  saíram** — reconciliar a tabela de `docs/finetuning.md` §2 (40/25/20/15) no relatório: a
-  composição real com o default (216 ex.): 68 núcleo limpo (31%) + 48 expansão-protocolo (22%) +
-  100 MedQuAD-EN (46%) → PT-BR 54%, segurança 0%.
+`build_dataset.py` **não** foi alterado. v1 (opus-mt) e v2 (MedQuAD EN cru) descartadas — ver Status.
+A v3 é montada na **célula 3** (ou por `scripts/gen_dataset_v3.py`, que gera o `docs/train_v3.jsonl`
+idêntico sem Colab):
+- **Núcleo limpo:** `data/processed/train.jsonl` **inteiro** (68 ex.: 12 protocolo + 56 FAQ), ~90%
+  citam `[PROT-NNN §x]`, PT-BR clínico.
+- **Expansão dos protocolos:** as 12 entradas `"Explique o protocolo ..."`, 4 fraseados cada (~48 ex.).
+- **Total 116**, fecho PT-BR rotacionado entre 4 fraseados.
+- **MedQuAD:** `N_MEDQUAD_EN = 0` por default. A célula 3 tem filtro `_medquad_ok` (rejeita listas
+  "these resources address / MedlinePlus / Gene Review" e respostas que começam repetindo a
+  pergunta — na fatia v2 isso descartaria 74/100). Só ligar depois que a v3 base passar, e mesmo
+  assim é fatia de risco.
+- **Ficam de fora:** opus-mt, PubMedQA, MedQuAD (default), exemplos de segurança (guardrails = grafo).
+- Diverge da tabela de `docs/finetuning.md` §2 (40/25/20/15) — reconciliar no relatório: a v3 é
+  ~59% FAQ+núcleo / ~41% expansão-protocolo, 0% MedQuAD, 0% segurança. Racional: guia §1 — o
+  fine-tune ensina comportamento (formato/citação/tom/parada), o RAG traz os fatos.
 - `data/processed/{train,val}.jsonl` gerados por `medassist build-dataset` (72 ex.: 68 treino / 4 val).
 
 ## Comandos úteis
@@ -161,9 +190,9 @@ palavra-chave documentados em §8.2 da especificação. `llm/ollama_provider.py`
 
 ### Gotchas do Colab / fine-tuning (sessão 2026-09-09)
 
-- **v2 não traduz nada** — a célula de dataset não baixa opus-mt nem precisa de GPU; as gotchas de
-  tradução da v1 (`AutoModelForSeq2SeqLM`, exige GPU, batches fp16) não se aplicam mais. A célula 2
-  não instala `sacremoses`.
+- **v2/v3 não traduzem nada** — a célula de dataset não baixa opus-mt nem precisa de GPU; as gotchas
+  de tradução da v1 (`AutoModelForSeq2SeqLM`, exige GPU, batches fp16) não se aplicam mais. A célula 2
+  não instala `sacremoses`. Na v3 a célula de dataset nem baixa nada por default (`N_MEDQUAD_EN=0`).
 - **`pip install git+transformers` quebra o pin do `unsloth`** (`transformers<=5.5.0`). A célula 1
   do notebook não instala o transformers do git — o `unsloth` resolve a versão compatível.
 - **Esta versão do `SFTTrainer`/`unsloth` não aplica o chat template sozinho** — dá
@@ -175,7 +204,7 @@ palavra-chave documentados em §8.2 da especificação. `llm/ollama_provider.py`
   `response_part='<|start_header_id|>assistant<|end_header_id|>'`.
 - **Célula 4b (sanity check)** roda logo após o treino, com o modelo ainda em memória
   (`FastLanguageModel.for_inference(modelo)`). Não recarrega nada do Drive — se o runtime caiu depois
-  do treino, é retreinar (o notebook v2 não tem mais célula de recuperação de adaptadores).
+  do treino, é retreinar (o notebook não tem mais célula de recuperação de adaptadores).
 - **Crash na célula de export = OOM de RAM de sistema** no merge 16-bit (Colab free ~12,7 GB), não
   disco nem VRAM. Resolvido com Colab Pro (High-RAM); a célula de export passa `maximum_memory_usage=0.6`.
 - **`save_pretrained_gguf(dir, ...)` grava em `dir + "_gguf/"`** com nome fixo

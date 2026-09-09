@@ -12,7 +12,9 @@ class OllamaProvider:
             model=settings.model,
             base_url=settings.ollama_base_url,
             temperature=0.2,
-            num_ctx=4096,
+            num_ctx=settings.ollama_num_ctx,
+            num_predict=settings.ollama_num_predict,
+            client_kwargs={"timeout": settings.ollama_timeout},
         )
 
     def gerar(self, system: str, mensagens: list[dict], contexto: str = "") -> str:

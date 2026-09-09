@@ -8,3 +8,6 @@ SYSTEM """Você é um assistente virtual de apoio à decisão clínica para méd
 
 PARAMETER temperature 0.2
 PARAMETER num_ctx 4096
+# Teto de tokens: se o modelo degenerar (nao emitir EOS), a geracao para aqui
+# em vez de rodar sem fim. Uma resposta bem-formada cabe com folga.
+PARAMETER num_predict 768

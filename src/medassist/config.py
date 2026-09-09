@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     ollama_base_url: str = Field(
         default="http://localhost:11434", validation_alias="OLLAMA_BASE_URL"
     )
+    # Teto de tokens por geracao: limita o pior caso se o modelo degenerar (nao
+    # emitir EOS). Uma resposta de protocolo bem-formada cabe em ~600.
+    ollama_num_predict: int = 768
+    # Timeout (s) por chamada ao Ollama. Estoura -> LLMIndisponivelError -> o grafo
+    # cai em resposta_segura em vez de travar. Em CPU, uma geracao sadia leva ~20-40s.
+    ollama_timeout: int = 240
+    ollama_num_ctx: int = 4096
 
 
 @lru_cache
