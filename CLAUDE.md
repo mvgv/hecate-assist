@@ -66,6 +66,13 @@ descontrolada estoura em ~1 min e cai em `resposta_segura` em vez de travar. `de
 regeneração. `OLLAMA_KEEP_ALIVE=-1` já mantém o modelo quente. Um modelo sadio gera ~12 tok/s
 (≈20-40 s/resposta); o grafo faz até 5 chamadas por `ask`.
 
+**Inferência na GPU (2026-09-09).** Host tem RTX 4060 Ti 8 GB (driver 616.64). Fine-tuning continua
+no Colab; só o serving vai pra GPU. **Nenhuma mudança de código** — o `ollama_provider` só fala HTTP.
+`docker-compose.gpu.yml` é um override que reserva a GPU pro serviço `ollama`
+(`make compose-up-gpu`, requer Docker Desktop com backend WSL2). O 3B Q4_K_M ocupa ~2 GB de VRAM e
+gera ~80-120 tok/s (vs. ~12 no CPU) → o `ask` inteiro em segundos. Conferir:
+`docker exec hecate-assist-ollama-1 ollama ps` → coluna PROCESSOR = `100% GPU`.
+
 **Validado rodando de verdade** (não só testes unitários): `docker build` e
 `docker compose up app ollama` com os dois containers `healthy`, entrypoint rodando `seed-db`/`ingest`
 dentro do container, app conversando com o Ollama pela rede interna do compose.
@@ -147,6 +154,8 @@ pytest -q --cov=medassist        # roda testes (provider "fake", sem Ollama)
 ruff check src tests
 streamlit run src/medassist/ui/app_streamlit.py
 docker compose up app ollama     # sobe local (compose = ambiente de referência)
+make compose-up-full             # stack completa: ollama + model-init (cria `medassist`) + app
+make compose-up-gpu              # idem, Ollama na GPU NVIDIA (docker-compose.gpu.yml)
 ```
 
 ## Arquitetura (resumo — detalhe completo em `docs/grafo_langgraph.md`)

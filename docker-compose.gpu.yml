@@ -1,0 +1,22 @@
+# Override para servir o Ollama na GPU NVIDIA (inferencia; o fine-tuning continua no Colab).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile full \
+#     up -d --build ollama model-init app
+#
+# Requisitos:
+#   - driver NVIDIA recente no host Windows (testado com 616.64 / RTX 4060 Ti 8 GB)
+#   - Docker Desktop com backend WSL2 (o NVIDIA Container Toolkit ja vem embutido
+#     no WSL2 do Docker Desktop >= 4.x - nao precisa instalar nada a mais)
+#
+# Conferir que pegou: `docker exec hecate-assist-ollama-1 ollama ps` deve mostrar
+# a coluna PROCESSOR como "100% GPU" (e nao "100% CPU"). O 3B Q4_K_M ocupa ~2 GB
+# de VRAM - sobra folga nos 8 GB.
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
