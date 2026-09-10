@@ -14,6 +14,24 @@ from medassist.data.anonymize import anonimizar
 
 _CONFIGURED = False
 
+# Logger dedicado da trilha de auditoria. Recebe o FileHandler do audit_*.jsonl
+# e NAO propaga para o root -> so eventos de dominio (via @auditado / get_logger)
+# vao para o arquivo. Sem isso, o FileHandler no root captura tudo que qualquer
+# lib loga em INFO (httpx faz 1 linha por request) e a auditoria fica afogada.
+_AUDIT_LOGGER_NAME = "medassist.audit"
+
+# Libs cujo INFO e ruido puro para este projeto.
+_LIBS_RUIDOSAS = (
+    "httpx",
+    "httpcore",
+    "urllib3",
+    "sentence_transformers",
+    "transformers",
+    "huggingface_hub",
+    "chromadb",
+    "filelock",
+)
+
 
 def _mask_pii(_logger, _method_name, event_dict: dict[str, Any]) -> dict[str, Any]:
     for chave, valor in list(event_dict.items()):
@@ -33,13 +51,6 @@ def configurar_logging() -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
     arquivo_log = log_dir / f"audit_{time.strftime('%Y%m%d')}.jsonl"
 
-    file_handler = logging.FileHandler(arquivo_log, encoding="utf-8")
-    stream_handler = logging.StreamHandler(sys.stdout)
-
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
-    root.handlers = [file_handler, stream_handler]
-
     structlog.configure(
         processors=[
             structlog.processors.add_log_level,
@@ -51,19 +62,37 @@ def configurar_logging() -> None:
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
-
-    formatter = structlog.stdlib.ProcessorFormatter(
+    json_formatter = structlog.stdlib.ProcessorFormatter(
         processor=structlog.processors.JSONRenderer(),
     )
-    file_handler.setFormatter(formatter)
-    stream_handler.setFormatter(formatter)
+
+    # Trilha de auditoria: JSON no arquivo + JSON no stdout (§ logging e auditoria).
+    file_handler = logging.FileHandler(arquivo_log, encoding="utf-8")
+    file_handler.setFormatter(json_formatter)
+    audit_stream = logging.StreamHandler(sys.stdout)
+    audit_stream.setFormatter(json_formatter)
+
+    audit_logger = logging.getLogger(_AUDIT_LOGGER_NAME)
+    audit_logger.setLevel(logging.INFO)
+    audit_logger.handlers = [file_handler, audit_stream]
+    audit_logger.propagate = False
+
+    # Root: so stdout, texto plano, para avisos/erros operacionais do app e libs.
+    root_stream = logging.StreamHandler(sys.stdout)
+    root_stream.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+    root = logging.getLogger()
+    root.setLevel(logging.WARNING)
+    root.handlers = [root_stream]
+
+    for lib in _LIBS_RUIDOSAS:
+        logging.getLogger(lib).setLevel(logging.WARNING)
 
     _CONFIGURED = True
 
 
 def get_logger(**contexto: Any):
     configurar_logging()
-    return structlog.get_logger().bind(**contexto)
+    return structlog.get_logger(_AUDIT_LOGGER_NAME).bind(**contexto)
 
 
 def auditado(fn: Callable[[dict], dict] | None = None, *, sempre_executa: bool = False):

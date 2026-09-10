@@ -232,3 +232,23 @@ Duas mudanças:
 `Dockerfile` (`ARG MEDASSIST_EMBEDDING_MODEL`), `.env`/`.env.example` atualizados.
 Reindexar: `medassist ingest` (o volume `app_data` mascara `/app/data` — recriar
 conforme o gotcha do `docker-compose`).
+
+## 16. Trilha de auditoria — FileHandler fora do root logger
+
+`configurar_logging()` fazia `root.handlers = [file_handler, stream_handler]`, ou
+seja, o `FileHandler` do `logs/audit_YYYYMMDD.jsonl` ficava no **root logger** em
+nível INFO. Resultado: tudo que qualquer biblioteca logasse em INFO caía no
+arquivo de auditoria — `httpx` sozinho gerava uma linha por request. Medido num
+`audit_*.jsonl` real: 1873 linhas, das quais **1363 (73%) eram `HTTP Request`** do
+`httpx` e ~80 eram ruído de `sentence_transformers`/`huggingface`; só ~23% eram
+eventos de auditoria de verdade. Além de afogar a trilha (que é artefato de
+compliance), vazava URLs internas e caminhos de cache.
+
+Corrigido: logger dedicado `medassist.audit` recebe o `FileHandler` + um
+`StreamHandler` JSON e tem `propagate=False`; o root fica só com um `StreamHandler`
+de texto plano em nível WARNING para avisos/erros operacionais; libs barulhentas
+(`httpx`, `httpcore`, `urllib3`, `sentence_transformers`, `transformers`,
+`huggingface_hub`, `chromadb`, `filelock`) fixadas em WARNING. `get_logger()` passa
+a pedir `structlog.get_logger("medassist.audit")`. Assinaturas de `get_logger` e
+`@auditado` não mudam. Validado: um `ask` completo gera exatamente 10 linhas no
+jsonl (5 `no_iniciado` + 5 `no_concluido`), zero ruído.
