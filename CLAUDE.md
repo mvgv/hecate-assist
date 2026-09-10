@@ -195,13 +195,29 @@ inicial na sepse" → PROT-013, "crise hipertensiva c/ EAP" trazia PROT-019 (DPO
 - **Bench (host, 25 protocolos reindexados): 13/14** — todas as queries clínicas recuperam o
   protocolo certo em #1 (0.83–0.95), top-k dominado pelo protocolo certo (fim da poluição DPOC);
   "me conte uma piada" → `sem_fonte` (e a triagem já barra antes). `docs/desvios.md` §15.
-- `pytest` 39/39, `ruff` limpo. **>>> FALTA:** rebuild do `app` (re-baixa o e5 no build) +
-  `docker volume rm hecate-assist_app_data` (o volume mascara `/app/data` → RAG ficaria com o
-  índice MiniLM antigo) + revalidar `medassist ask` no grafo.
-3. **Respostas longas confabulam.** Os exemplos "Explique o protocolo ..." (corpo inteiro) no
-   dataset puxam respostas longas onde o modelo inventa detalhe clínico. Encurtar/remover essa
-   fatia numa v5, ou baixar `num_predict`.
-4. `python -m medassist.finetune.evaluate` — não rodado (precisa do base 8B no Ollama p/ o A/B).
+- `pytest` 39/39, `ruff` limpo. Rebuild do `app` + `docker volume rm hecate-assist_app_data`
+  feitos; revalidado no grafo (sepse→PROT-001, crise hipertensiva c/ EAP→PROT-005, noradrenalina
+  no choque séptico→PROT-001 §3). Commit `5f6bf7e`, pushado.
+
+**Item 3 (respostas longas confabulam) — RESOLVIDO pelo item 2 (2026-09-10), sem mudança de código.**
+A confabulação em "Explique o protocolo X" era sintoma do RAG errado: quando o retrieval trazia
+o protocolo errado/parcial, o modelo preenchia os buracos inventando detalhe clínico plausível.
+Com o e5 trazendo as seções reais do protocolo certo, ele recompõe fiel. Testado: CAD,
+anafilaxia, hipercalemia, FA — 4/4 texto ~verbatim das seções, **zero detalhe inventado**.
+Sobra (não vale retrain): a cobertura de seções varia (às vezes pula §2/§3) e o `§N` em "Fontes"
+nem sempre bate com o que foi resumido (o `doc_id` está certo, guardrail `fonte_alucinada` OK).
+`num_predict` fica em 768 — é teto anti-degeneração, o modelo não está degenerando.
+
+**Item 4 (avaliação base vs fine-tuned) — FEITO (2026-09-10).** `evaluate.py` reescrito para A/B
+real: `--modelos medassist llama3.1:8b`, um passe completo por modelo (evita thrash), métricas
+`doc_ids` (sobreposição de citações `[PROT-NNN]` com a referência), `formato` (cita + encerra com
+validação) e `rougeL` (se `rouge-score` instalado — adicionado ao extra `dev`). Rodado no
+container (`ollama pull llama3.1:8b` = base; `docker cp` do `val.jsonl` — gitignored). Resultado
+em `docs/avaliacao.md`: **formato `medassist` 1.000 vs base 0.125** (o fine-tune aprendeu o
+estilo da casa — cita e recomenda validação); `doc_ids` 0.375 vs 0.125 (ruidoso: as referências
+do `val.jsonl` nem sempre citam em colchetes, e acertar o nº do protocolo sem RAG é tarefa do
+retrieval). `rouge-score` não estava no container → métrica ROUGE-L pendente (instalar e rodar
+de novo para o sinal lexical).
 
 **Já feito nesta sessão:** `TERMOS_CLINICOS` ampliado p/ os 25 protocolos (recusas falsas de
 hipercalemia/DPOC/HDA/TVP resolvidas). 39 testes passando, `ruff` limpo. Stack de GPU no ar

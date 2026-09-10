@@ -20,7 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 train = ["datasets", "peft", "trl", "bitsandbytes", "unsloth"]
-dev = ["pytest>=8.0", "pytest-cov", "ruff"]
+dev = ["pytest>=8.0", "pytest-cov", "ruff", "rouge-score"]
 
 [project.scripts]
 medassist = "medassist.ui.cli:app"
