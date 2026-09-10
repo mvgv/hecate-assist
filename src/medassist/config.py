@@ -26,9 +26,13 @@ class Settings(BaseSettings):
     chroma_dir: str = "data/chroma"
     log_dir: str = "logs"
 
-    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    # E5 multilingue: bem superior ao paraphrase-MiniLM para retrieval em PT-BR
+    # (ver docs/desvios.md #15). Exige prefixo `query:`/`passage:` — tratado em
+    # rag/embedding.py. As similaridades do E5 ficam comprimidas no alto (~0.82+
+    # p/ relevante, ~0.81 p/ ruido) -> min_score 0.82.
+    embedding_model: str = "intfloat/multilingual-e5-small"
     rag_top_k: int = 4
-    rag_min_score: float = 0.35
+    rag_min_score: float = 0.82
 
     max_tentativas: int = 2
 

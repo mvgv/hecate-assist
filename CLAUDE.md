@@ -182,12 +182,22 @@ tarefa do `gerar_resposta` (425 ex.) → o modelo ficava pior em classificar (tr
   triagem quente ~0,5 s. Respostas citam o protocolo certo (PROT-006/008/010), param no EOS,
   sem falso-bloqueio.
 
-**Depois do item 1:**
-2. **RAG erra em meta-queries e algumas clínicas.** `recuperar_protocolos` (`nodes.py:73`) manda
-   a pergunta crua pro `buscar()`. "qual o protocolo de sepse?" → PROT-024; "crise hipertensiva
-   com EAP" → conteúdo de DPOC. Reformular a query (strip "qual o protocolo de"/"existe protocolo
-   para"), rever `rag_min_score` (0.35), avaliar embedding PT melhor. Retrieval funciona bem p/
-   queries clínicas diretas ("manejo da cetoacidose diabética" → PROT-008 0.72).
+**Item 2 (RAG grounding) — FEITO (2026-09-10), falta revalidar no grafo em Docker.**
+O `paraphrase-MiniLM` errava o protocolo: "qual o protocolo de sepse?" → PROT-024, "conduta
+inicial na sepse" → PROT-013, "crise hipertensiva c/ EAP" trazia PROT-019 (DPOC). **Solução:**
+- **Embedding `intfloat/multilingual-e5-small`** (`config.py`, `Dockerfile ARG`, `.env`). Exige
+  prefixo `query:`/`passage:` → novo `rag/embedding.py` (`embed_consulta`/`embed_passagens`);
+  `ingest` grava os vetores prontos e `retriever` usa `query_embeddings=` (antes a collection do
+  Chroma embutia e aplicaria o prefixo errado na consulta). `rag_min_score` 0.35 → **0.82** (as
+  sims do E5 ficam comprimidas: ~0.82+ relevante, ~0.81 ruído).
+- **`_reformular_query`** (`nodes.py`) tira o preâmbulo "qual/existe/o que diz o protocolo/
+  conduta/manejo de …" e manda só o termo clínico pro `buscar()`.
+- **Bench (host, 25 protocolos reindexados): 13/14** — todas as queries clínicas recuperam o
+  protocolo certo em #1 (0.83–0.95), top-k dominado pelo protocolo certo (fim da poluição DPOC);
+  "me conte uma piada" → `sem_fonte` (e a triagem já barra antes). `docs/desvios.md` §15.
+- `pytest` 39/39, `ruff` limpo. **>>> FALTA:** rebuild do `app` (re-baixa o e5 no build) +
+  `docker volume rm hecate-assist_app_data` (o volume mascara `/app/data` → RAG ficaria com o
+  índice MiniLM antigo) + revalidar `medassist ask` no grafo.
 3. **Respostas longas confabulam.** Os exemplos "Explique o protocolo ..." (corpo inteiro) no
    dataset puxam respostas longas onde o modelo inventa detalhe clínico. Encurtar/remover essa
    fatia numa v5, ou baixar `num_predict`.

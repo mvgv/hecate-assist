@@ -23,19 +23,19 @@ def buscar(
 
     try:
         client = chromadb.PersistentClient(path=settings.chroma_dir)
-        from chromadb.utils import embedding_functions
-
-        embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=settings.embedding_model
-        )
-        collection = client.get_collection(COLLECTION_NAME, embedding_function=embed_fn)
+        collection = client.get_collection(COLLECTION_NAME)
     except Exception:
         return []
 
     if collection.count() == 0:
         return []
 
-    resultado = collection.query(query_texts=[query], n_results=min(top_k, collection.count()))
+    from medassist.rag.embedding import embed_consulta
+
+    query_embedding = embed_consulta(query)
+    resultado = collection.query(
+        query_embeddings=[query_embedding], n_results=min(top_k, collection.count())
+    )
 
     documentos = resultado.get("documents", [[]])[0]
     metadados = resultado.get("metadatas", [[]])[0]

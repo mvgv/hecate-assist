@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 FROM python:3.11-slim AS runtime
 
-ARG MEDASSIST_EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+ARG MEDASSIST_EMBEDDING_MODEL=intfloat/multilingual-e5-small
 ENV PATH="/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     MEDASSIST_EMBEDDING_MODEL=${MEDASSIST_EMBEDDING_MODEL} \

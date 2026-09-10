@@ -101,20 +101,19 @@ def ingest(protocolos_dir: str | None = None) -> int:
         client.get_or_create_collection(COLLECTION_NAME, metadata={"hnsw:space": "cosine"})
         return 0
 
-    from chromadb.utils import embedding_functions
-
-    embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=settings.embedding_model
-    )
     collection = client.get_or_create_collection(
-        COLLECTION_NAME, embedding_function=embed_fn, metadata={"hnsw:space": "cosine"}
+        COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
     )
 
     # O embedding e calculado sobre titulo+secao+corpo (melhora recall para
     # perguntas curtas), mas o "documento" retornado/citado e so o corpo,
-    # que e o texto tecnico util para a resposta.
+    # que e o texto tecnico util para a resposta. Passamos os vetores prontos
+    # (com o prefixo `passage:` quando o modelo e da familia E5) em vez de
+    # deixar a collection embutir, para casar com o prefixo `query:` do retriever.
+    from medassist.rag.embedding import embed_passagens
+
     textos_embedding = [f"{c.titulo}. {c.secao}. {c.conteudo}" for c in todos_chunks]
-    embeddings = embed_fn(textos_embedding)
+    embeddings = embed_passagens(textos_embedding)
 
     collection.add(
         ids=[f"{c.doc_id}-{i}" for i, c in enumerate(todos_chunks)],

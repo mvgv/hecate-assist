@@ -22,6 +22,22 @@ from medassist.rag.retriever import buscar
 
 _RE_DOC_CITADO = re.compile(r"PROT-\d+")
 
+# Meta-perguntas ("qual o protocolo de X?", "existe conduta para X?") carregam
+# ruido que dilui o embedding da consulta e faz o RAG errar o protocolo. Tira o
+# preambulo e deixa so o termo clinico X.
+_RE_META_QUERY = re.compile(
+    r"^\s*(por favor,?\s*)?(me\s+)?"
+    r"(diga|explique|informe|mostre|descreva|resuma|qual|quais|o que|onde|existe|tem|há|ha)\b"
+    r".*?\b(protocolo|conduta|manejo|abordagem|tratamento|orienta\w+|recomenda\w+)\s+"
+    r"(institucional\s+)?(para|de|da|do|sobre|com|em|no|na)\s+",
+    re.IGNORECASE,
+)
+
+
+def _reformular_query(pergunta: str) -> str:
+    limpa = _RE_META_QUERY.sub("", pergunta).strip(" ?.!¿")
+    return limpa or pergunta
+
 
 @auditado
 def triagem(state: dict) -> dict:
@@ -66,7 +82,7 @@ def verificar_exames(state: dict) -> dict:
 
 @auditado
 def recuperar_protocolos(state: dict) -> dict:
-    pergunta = state.get("pergunta", "")
+    pergunta = _reformular_query(state.get("pergunta", ""))
     paciente = state.get("paciente") or {}
     comorbidades = paciente.get("comorbidades", [])
     query = f"{pergunta} {' '.join(comorbidades)}".strip() if comorbidades else pergunta

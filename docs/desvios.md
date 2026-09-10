@@ -206,3 +206,29 @@ resposta limpa → `aprovada`.
 Ficaram órfãos (sem uso, mantidos por serem inofensivos e documentados na spec):
 `PROMPT_VERIFICADOR` em `assistant/prompts.py` e o ramo `if "AVALIE" in system` do
 `FakeLLM` (`llm/fake.py`).
+
+## 15. RAG — embedding trocado para E5 multilingue + reformulação de meta-query
+
+O `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (spec §7) errava o
+protocolo em perguntas naturais. Exemplos medidos (25 protocolos indexados):
+"qual o protocolo de sepse?" → PROT-024 (Analgesia); "conduta inicial na sepse" →
+PROT-013 (FA); "crise hipertensiva com EAP" trazia PROT-019 (DPOC) entre os 4
+chunks. Causa: o modelo é fraco para PT-BR clínico e o preâmbulo das perguntas
+("qual o protocolo de…") dilui o vetor.
+
+Duas mudanças:
+1. **`intfloat/multilingual-e5-small`** como `embedding_model`. Bench nos mesmos
+   casos: todos os 12 recuperam o protocolo certo em #1 (cosseno 0.83–0.95). O E5
+   exige prefixar cada texto com `query: ` / `passage: ` — feito em
+   `rag/embedding.py` (`embed_consulta` / `embed_passagens`). O `ingest` passa a
+   gravar os vetores prontos e o `retriever` consulta com `query_embeddings=`
+   (antes ambos deixavam a collection do Chroma embutir — o que aplicaria o
+   prefixo errado na consulta). As similaridades do E5 ficam comprimidas no alto
+   → `rag_min_score` 0.35 → **0.82**.
+2. **`_reformular_query`** em `nodes.recuperar_protocolos`: tira o preâmbulo
+   ("qual/existe/o que diz o protocolo/conduta/manejo de …") e manda só o termo
+   clínico para o `buscar()`. "qual o protocolo de sepse?" → "sepse" → PROT-001.
+
+`Dockerfile` (`ARG MEDASSIST_EMBEDDING_MODEL`), `.env`/`.env.example` atualizados.
+Reindexar: `medassist ingest` (o volume `app_data` mascara `/app/data` — recriar
+conforme o gotcha do `docker-compose`).
