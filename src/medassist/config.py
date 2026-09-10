@@ -15,6 +15,10 @@ class Settings(BaseSettings):
 
     llm_provider: Literal["fake", "ollama"] = "fake"
     model: str = "medassist"
+    # Modelo auxiliar de proposito geral para a triagem (classificacao de intencao).
+    # O `medassist` fine-tunado so treinou a tarefa do `gerar_resposta` -> fora dela
+    # ele recusa demais. Um 3B generico classifica bem e e rapido (~1 s/chamada).
+    model_aux: str = "llama3.2:3b"
 
     data_dir: str = "data"
     db_path: str = "data/medassist.db"
@@ -37,7 +41,16 @@ class Settings(BaseSettings):
     # Timeout (s) por chamada ao Ollama. Estoura -> LLMIndisponivelError -> o grafo
     # cai em resposta_segura em vez de travar. Em CPU, uma geracao sadia leva ~20-40s.
     ollama_timeout: int = 240
-    ollama_num_ctx: int = 4096
+    # 3072 e suficiente p/ contexto RAG + pergunta + 768 de geracao; deixa folga
+    # de VRAM na GPU de 8 GB (pode voltar a 4096 se algum prompt truncar).
+    ollama_num_ctx: int = 3072
+    # Modelo auxiliar (triagem) roda na CPU (`num_gpu=0`): a GPU inteira fica para
+    # o 8B (senao o Ollama fica descarregando um modelo a cada chamada, pois os
+    # dois nao cabem nos 8 GB). A triagem e uma classificacao de 1 palavra ->
+    # ~0.5 s por chamada na CPU depois do load inicial (`OLLAMA_KEEP_ALIVE=-1`).
+    ollama_aux_num_gpu: int = 0
+    ollama_aux_num_ctx: int = 1024
+    ollama_aux_num_predict: int = 32
 
 
 @lru_cache

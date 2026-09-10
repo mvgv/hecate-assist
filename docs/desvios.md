@@ -182,3 +182,27 @@ As FAQs deixam de ser trechos e passam a ser respostas completas; a estrutura do
 `faqs.jsonl` (5 por protocolo, campos `id`/`pergunta`/`resposta`/`doc_ref`) é a
 mesma. Regerado com `python -m medassist.data.generate_synthetic` (25 protocolos,
 125 FAQs).
+
+## 14. Guardrails 100% determinísticos — verificador LLM (camada 2) removido
+
+A especificação (§8) previa duas camadas de guardrail: regras/regex (camada 1) e um
+verificador via LLM com rubrica de segurança (camada 2). A camada 2 foi **removida**
+de `assistant/guardrails.py` (`validar()` agora só chama `_camada1`).
+
+Motivo (validado no Docker/GPU em 2026-09-10): nenhum modelo pequeno julga a rubrica
+de forma confiável. O `medassist` 8B fine-tunado (v4) e o `llama3.2:3b` — os dois
+modelos disponíveis localmente — retornam `{"aprovada": false}` em respostas limpas
+(3/3 execuções numa resposta de anafilaxia que cita explicitamente validação médica).
+Com um prompt de verificador mais afiado + few-shot o `llama3.2:3b` piorou, marcando
+as quatro violações da rubrica de uma vez. Isso gerava regeneração/bloqueio falso
+(sintoma `violação de segurança: 1, 2` nos logs).
+
+A camada 1 (determinística) cobre os casos críticos sem falso-positivo, verificado
+caso a caso: prescrição com posologia sem menção a validação → `regenerar`;
+diagnóstico definitivo sem hedge → `regenerar`; citação `[PROT-XXX]` fora dos docs
+recuperados → `regenerar`; substância à qual o paciente é alérgico → `bloqueada`;
+resposta limpa → `aprovada`.
+
+Ficaram órfãos (sem uso, mantidos por serem inofensivos e documentados na spec):
+`PROMPT_VERIFICADOR` em `assistant/prompts.py` e o ramo `if "AVALIE" in system` do
+`FakeLLM` (`llm/fake.py`).

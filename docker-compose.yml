@@ -10,7 +10,12 @@ services:
       - ./models:/models:ro
     environment:
       - OLLAMA_NUM_PARALLEL=1
-      - OLLAMA_MAX_LOADED_MODELS=1
+      # 2: o grafo mantem 2 modelos carregados ao mesmo tempo — o `medassist` 8B
+      # (gerar_resposta) na GPU e o `llama3.2:3b` (triagem) na CPU (num_gpu=0, ver
+      # config.py). Com 1, o Ollama descarregaria o 8B a cada chamada de triagem
+      # (~+60-90 s/ask). Como o 3B fica na CPU, nao ha disputa de VRAM: `ollama ps`
+      # deve mostrar `medassist` = 100% GPU e `llama3.2:3b` = 100% CPU.
+      - OLLAMA_MAX_LOADED_MODELS=2
       - OLLAMA_KEEP_ALIVE=-1
     # 8B Q4_K_M ~4.9 GB de pesos; folga p/ KV cache + runner (na GPU o peso vai
     # p/ VRAM, mas o load path ainda usa RAM de host; no CPU-only precisa de tudo).
@@ -32,7 +37,12 @@ services:
     volumes:
       - ./deploy:/deploy:ro
       - ./models:/models:ro
-    entrypoint: ["ollama", "create", "medassist", "-f", "/deploy/Modelfile"]
+    # cria o `medassist` (fine-tunado) e baixa o modelo auxiliar geral usado na
+    # triagem e no verificador dos guardrails (get_llm(aux=True) -> model_aux).
+    entrypoint:
+      - sh
+      - -c
+      - "ollama create medassist -f /deploy/Modelfile && ollama pull llama3.2:3b"
     restart: "no"
     profiles: ["full"]
 
@@ -44,6 +54,7 @@ services:
     environment:
       - MEDASSIST_LLM_PROVIDER=ollama
       - MEDASSIST_MODEL=medassist
+      - MEDASSIST_MODEL_AUX=llama3.2:3b
       - OLLAMA_BASE_URL=http://ollama:11434
     volumes:
       - app_data:/app/data

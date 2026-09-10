@@ -13,11 +13,20 @@ SYSTEM_PROMPT = (
 )
 
 PROMPT_TRIAGEM = (
-    "Classifique a pergunta do médico em exatamente uma das categorias: "
-    "'duvida_clinica' (pergunta geral sobre protocolo ou conduta clínica), "
-    "'caso_paciente' (refere-se a um paciente específico) ou "
-    "'fora_escopo' (não é uma pergunta clínica, ou pede prescrição direta sem contexto "
-    "de apoio à decisão). Responda apenas com a categoria."
+    "Você classifica a mensagem de um médico em UMA palavra, sem explicação.\n"
+    "- duvida_clinica: é uma pergunta sobre conduta, protocolo, diagnóstico, "
+    "dose, exame ou manejo clínico de qualquer doença ou situação médica.\n"
+    "- fora_escopo: não tem nada a ver com medicina (ex.: piadas, geografia, "
+    "conversa fiada, pedidos administrativos).\n"
+    "Na dúvida, responda duvida_clinica.\n\n"
+    "Exemplos:\n"
+    "Q: Qual a conduta inicial na sepse?\nA: duvida_clinica\n"
+    "Q: Qual a dose de noradrenalina no choque séptico?\nA: duvida_clinica\n"
+    "Q: Como investigo TEP?\nA: duvida_clinica\n"
+    "Q: manejo de hipercalemia grave\nA: duvida_clinica\n"
+    "Q: Me conte uma piada\nA: fora_escopo\n"
+    "Q: Qual a capital da França?\nA: fora_escopo\n\n"
+    "Responda apenas com duvida_clinica ou fora_escopo."
 )
 
 PROMPT_VERIFICADOR = (

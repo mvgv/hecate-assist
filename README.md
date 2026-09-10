@@ -19,7 +19,7 @@ Pergunta do médico + ID do paciente
         │
         ▼
    LangGraph: triagem → contexto do paciente (SQLite) → exames pendentes
-              → RAG (protocolos) → LLM → guardrails (regex + LLM verificador)
+              → RAG (protocolos) → LLM → guardrails (regras determinísticas)
               → [aprovação humana] → alertas → resposta com fontes citadas
         │                                    │
         ▼                                    ▼
@@ -169,14 +169,16 @@ src/medassist/
 
 ## Guardrails e segurança
 
-O assistente **nunca prescreve diretamente**. Toda resposta passa por duas
-camadas de validação (`assistant/guardrails.py`): regras determinísticas
-(prescrição direta sem menção a validação, diagnóstico definitivo sem hedge,
-citação de fonte não recuperada, substância à qual o paciente é alérgico) e,
-se aprovada na primeira camada, um verificador via LLM. Respostas reprovadas
-regeneram (até `MEDASSIST_MAX_TENTATIVAS`, padrão 2) ou caem no fallback
-seguro. Sugestões de conduta para um paciente específico exigem **aprovação
-humana** (`interrupt()` do LangGraph) antes de qualquer alerta ser registrado.
+O assistente **nunca prescreve diretamente**. Toda resposta passa por um
+guardrail determinístico (`assistant/guardrails.py`): prescrição direta sem
+menção a validação, diagnóstico definitivo sem hedge e citação de fonte não
+recuperada → regeneração; substância à qual o paciente é alérgico → bloqueio.
+O verificador via LLM previsto originalmente foi removido — nenhum modelo
+pequeno julga a rubrica de forma confiável, gerando bloqueio falso
+(`docs/desvios.md` §14). Respostas reprovadas regeneram (até
+`MEDASSIST_MAX_TENTATIVAS`, padrão 2) ou caem no fallback seguro. Sugestões de
+conduta para um paciente específico exigem **aprovação humana** (`interrupt()`
+do LangGraph) antes de qualquer alerta ser registrado.
 
 ## Logging e auditoria
 

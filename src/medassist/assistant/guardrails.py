@@ -1,8 +1,4 @@
-import json
 import re
-
-from medassist.assistant.prompts import PROMPT_VERIFICADOR
-from medassist.logging_setup import get_logger
 
 _RE_PRESCRICAO = re.compile(
     r"\b(prescrever|prescrevo|administrar|tomar|aplicar)\b.*\d+\s?(mg|g|ml|mcg|ui)\b",
@@ -57,33 +53,19 @@ def _camada1(state: dict) -> tuple[str | None, list[str]]:
     return None, []
 
 
-def _camada2(state: dict) -> tuple[bool, list[str]]:
-    from medassist.llm.base import get_llm
-
-    log = get_logger(no="guardrails")
-    llm = get_llm()
-    try:
-        resposta = llm.gerar(
-            system=PROMPT_VERIFICADOR,
-            mensagens=[{"role": "user", "content": state.get("resposta_bruta", "")}],
-        )
-        parsed = json.loads(resposta)
-        return bool(parsed.get("aprovada", True)), list(parsed.get("violacoes", []))
-    except Exception:
-        log.warning("verificador_ilegivel")
-        return True, []
-
-
 def validar(state: dict) -> dict:
+    # Guardrail 100% deterministico (regras/regex). O verificador via LLM foi
+    # removido: nenhum modelo pequeno (nem o 8B fine-tunado, nem o llama3.2:3b)
+    # julga a rubrica de seguranca de forma confiavel — ambos davam
+    # `aprovada: false` em respostas limpas (falso-bloqueio). As regras de
+    # `_camada1` cobrem os casos criticos sem falso-positivo:
+    # prescricao sem validacao, diagnostico definitivo sem hedge, fonte
+    # alucinada (-> regenerar) e substancia com alergia do paciente (-> bloqueada).
     veredito_c1, violacoes_c1 = _camada1(state)
     if veredito_c1 == "bloqueada":
         return {"veredito": "bloqueada", "violacoes": violacoes_c1}
     if veredito_c1 == "regenerar":
         return {"veredito": "regenerar", "violacoes": violacoes_c1}
-
-    aprovada_c2, violacoes_c2 = _camada2(state)
-    if not aprovada_c2:
-        return {"veredito": "regenerar", "violacoes": violacoes_c2}
 
     resposta = state.get("resposta_bruta", "")
     requer_aprovacao = bool(state.get("requer_aprovacao"))

@@ -33,7 +33,7 @@ def triagem(state: dict) -> dict:
     if not tem_termo_clinico:
         return {"intencao": "fora_escopo"}
 
-    llm = get_llm()
+    llm = get_llm(aux=True)
     resposta = llm.gerar(
         system=PROMPT_TRIAGEM,
         mensagens=[{"role": "user", "content": state.get("pergunta", "")}],

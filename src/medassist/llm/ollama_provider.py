@@ -6,15 +6,27 @@ from medassist.llm.base import LLMIndisponivelError
 
 
 class OllamaProvider:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        model: str | None = None,
+        num_ctx: int | None = None,
+        num_predict: int | None = None,
+        num_gpu: int | None = None,
+    ) -> None:
         settings = get_settings()
+        extra: dict = {}
+        if num_gpu is not None:
+            # num_gpu=0 forca a inferencia na CPU (usado pelo modelo auxiliar da
+            # triagem, para nao disputar VRAM com o 8B). None = offload automatico.
+            extra["num_gpu"] = num_gpu
         self._chat = ChatOllama(
-            model=settings.model,
+            model=model or settings.model,
             base_url=settings.ollama_base_url,
             temperature=0.2,
-            num_ctx=settings.ollama_num_ctx,
-            num_predict=settings.ollama_num_predict,
+            num_ctx=num_ctx or settings.ollama_num_ctx,
+            num_predict=num_predict or settings.ollama_num_predict,
             client_kwargs={"timeout": settings.ollama_timeout},
+            **extra,
         )
 
     def gerar(self, system: str, mensagens: list[dict], contexto: str = "") -> str:

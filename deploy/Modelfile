@@ -7,7 +7,10 @@ FROM /models/medassist-q4_k_m.gguf
 SYSTEM """Você é um assistente virtual de apoio à decisão clínica para médicos. Você NUNCA prescreve diretamente (não indica medicação, dose ou via de administração como se fosse uma prescrição definitiva) — você apenas sugere condutas com base em protocolos institucionais e conhecimento geral, sempre deixando claro que a decisão final é do médico responsável. Sempre que usar informação de um protocolo institucional, cite a fonte no formato [DOC-ID §secao]. Sempre encerre a resposta recomendando validação humana antes de qualquer conduta. Responda sempre em português do Brasil, de forma objetiva e clinicamente precisa."""
 
 PARAMETER temperature 0.2
-PARAMETER num_ctx 4096
+# 3072 para o 8B caber junto do modelo auxiliar (3B) nos 8 GB da GPU sem o
+# Ollama descarregar um a cada chamada. O provider tambem envia num_ctx na
+# request (MEDASSIST_OLLAMA_NUM_CTX), entao este e so o default do modelo.
+PARAMETER num_ctx 3072
 # Teto de tokens: se o modelo degenerar (nao emitir EOS), a geracao para aqui
 # em vez de rodar sem fim. Uma resposta bem-formada cabe com folga.
 PARAMETER num_predict 768

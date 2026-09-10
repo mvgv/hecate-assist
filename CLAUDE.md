@@ -141,25 +141,46 @@ docker exec hecate-assist-app-1 medassist ask "qual o protocolo de sepse?"
 (ver Status "v4 RODADA"). A degeneração v1/v2/v3 acabou — o modelo é fluente, cita e para no EOS.
 O que falta é **grounding/roteamento**, não mais "o modelo é lixo".
 
-**>>> AMANHÃ, começar pelo item 1 (separar os modelos do grafo):**
-O grafo chama LLM em 3 nós, todos no `medassist` fine-tuned: `triagem` (`nodes.py:36`),
-`gerar_resposta` (`nodes.py:123`), `checar_guardrails`/verificador (`guardrails.py:64`). O
-fine-tune v4 só treinou a tarefa do `gerar_resposta` (425 ex.) → o modelo ficou pior em
-classificar (triagem) e julgar (verificador) — daí as recusas falsas e os blocks
-`violação de segurança: 1, 2` (e os `verificador_ilegivel` da v3). **Fix:** `gerar_resposta`
-continua no `medassist`; `triagem` e `checar_guardrails` passam a um modelo de propósito geral
-**pequeno** (`llama3.2:3b` ou `qwen2.5:3b`, ~2 GB — cabe junto do 8B na GPU; o 8B base seria
-melhor mas com 8 GB de VRAM + `OLLAMA_MAX_LOADED_MODELS=1` fica trocando modelo a cada chamada).
-Passos:
-  1. `config.py`: campo `model_aux: str = "llama3.2:3b"` (env `MEDASSIST_MODEL_AUX`).
-  2. `OllamaProvider.__init__`: aceitar `model` opcional (hoje fixa `settings.model`).
-  3. `llm/base.py` `get_llm(aux: bool = False)`: se `aux`, instanciar com `settings.model_aux`.
-  4. Trocar as 2 chamadas: `nodes.py:36` e `guardrails.py:64` → `get_llm(aux=True)`.
-  5. Deploy: `model-init`/entrypoint também faz `ollama pull llama3.2:3b`.
-  6. `pytest` (usa FakeLLM, não quebra) + revalidar o grafo no Docker GPU com as perguntas que
-     hoje dão recusa falsa / block (ver Status "v4 RODADA").
-  Alternativa mais barata: desligar o verificador LLM e deixar só as regras do guardrail
-  (`fonte_alucinada` já é regra pura); triagem pode decidir só pelo pré-filtro `TERMOS_CLINICOS`.
+**Item 1 (separar os modelos do grafo) — FEITO e VALIDADO no Docker GPU (2026-09-10).**
+O grafo chamava LLM em 3 nós, todos no `medassist` fine-tuned. O fine-tune v4 só treinou a
+tarefa do `gerar_resposta` (425 ex.) → o modelo ficava pior em classificar (triagem) e julgar
+(verificador) — recusas falsas e blocks `violação de segurança: 1, 2`. **Solução aplicada:**
+- **Triagem** (`nodes.py`) agora usa `get_llm(aux=True)` → `settings.model_aux` (`llama3.2:3b`).
+  Validado no Docker GPU: 6/6 classificações corretas, **~1 s** cada (vs. ~30-60 s no 8B), inclui
+  "dose de noradrenalina no choque séptico" → `duvida_clinica` (o 8B fine-tuned recusava),
+  "me conte uma piada" → `fora_escopo`, "paciente 3 pode ter alta?" → `caso_paciente`.
+- **Verificador LLM (camada 2) dos guardrails: REMOVIDO.** Testado no Docker GPU: nem o 8B
+  fine-tuned nem o `llama3.2:3b` julgam a rubrica de forma confiável — ambos retornam
+  `{"aprovada": false}` em respostas limpas (3/3 numa resposta de anafilaxia que cita validação
+  médica; com prompt afiado + few-shot **piorou**, marcou as 4 violações). `guardrails.validar()`
+  agora é 100% determinístico (`_camada1`): prescrição sem validação / diagnóstico definitivo sem
+  hedge / fonte alucinada → `regenerar`; substância com alergia do paciente → `bloqueada`.
+  Verificado que `_camada1` acerta os 5 casos sem falso-positivo. `PROMPT_VERIFICADOR` em
+  `prompts.py` e o ramo `if "AVALIE" in system` do `FakeLLM` ficaram órfãos (inofensivos; ver
+  `docs/desvios.md` §14).
+  - `PROMPT_TRIAGEM` reescrito: era 3-way (`duvida_clinica`/`caso_paciente`/`fora_escopo`) em
+    prosa; agora é **binário** (`duvida_clinica` vs `fora_escopo`) com 6 exemplos few-shot —
+    `caso_paciente` já é decidido antes do LLM pelo `paciente_id`, e os modelos pequenos só
+    seguem a instrução com o prompt curto + exemplos. Bench pós-prompt: `llama3.2:3b` **11/12**,
+    `qwen2.5:1.5b` 8/12, `llama3.2:1b` 6/12 → **o 3B é o único aux viável**; 1B/1.5B ignoram a
+    instrução (contam piada, respondem geografia).
+  - `config.py`: `model_aux="llama3.2:3b"`, `ollama_num_ctx` 4096→**3072**, novos
+    `ollama_aux_num_gpu=0` / `ollama_aux_num_ctx=1024` / `ollama_aux_num_predict=32`.
+  - `OllamaProvider.__init__(model, num_ctx, num_predict, num_gpu)` — passa `num_gpu` só quando
+    não-`None`. `llm/base.py` `get_llm(aux=True)` → 3B com `num_gpu=0, num_ctx=1024, num_predict=32`.
+  - `deploy/Modelfile`: `PARAMETER num_ctx 3072`. `docker-compose.yml`: `model-init` faz
+    `ollama pull llama3.2:3b`, `OLLAMA_MAX_LOADED_MODELS=2`. `.env.example` atualizado.
+  - `pytest` 39/39, `ruff` limpo.
+  **VRAM / thrash — RESOLVIDO (rodar a triagem na CPU).** Antes: 8B + 3B na GPU não cabiam nos
+  8 GB (só ~7,1 GiB usáveis) → o Ollama descarregava um a cada nó; `triagem no_concluido` chegou
+  a **86 s**, `ask` ~3-4 min. Tentativa de encolher os dois (8B@3072, 3B@1024) ainda deu
+  `evicting` (7,0 vs 7,1 GiB — na margem). **Solução:** o 3B da triagem roda na CPU
+  (`num_gpu=0`) — a GPU inteira fica para o 8B, zero disputa. **Validado no Docker GPU
+  (2026-09-10):** `ollama ps` = `medassist` `100% GPU` (5,1 GB) + `llama3.2:3b` `100% CPU`
+  (2,2 GB), os dois residentes (`OLLAMA_KEEP_ALIVE=-1`); **0 evictions** em 3 asks; `ask` quente
+  **39-47 s** (1º ~120 s: load dos dois modelos + stall de metadados do HF no 1º embedding);
+  triagem quente ~0,5 s. Respostas citam o protocolo certo (PROT-006/008/010), param no EOS,
+  sem falso-bloqueio.
 
 **Depois do item 1:**
 2. **RAG erra em meta-queries e algumas clínicas.** `recuperar_protocolos` (`nodes.py:73`) manda
