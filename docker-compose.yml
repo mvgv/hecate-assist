@@ -4,11 +4,17 @@ services:
     volumes:
       - ollama_models:/root/.ollama
       - ./deploy/Modelfile:/Modelfile:ro
+      # GGUF montado tambem aqui: p/ modelos grandes (8B ~4.9 GB) o `ollama create`
+      # roda DENTRO deste container (copia em disco, mmap) em vez de via `model-init`
+      # (que faz POST HTTP do blob e estoura a RAM da VM WSL2 de ~8 GB).
+      - ./models:/models:ro
     environment:
       - OLLAMA_NUM_PARALLEL=1
       - OLLAMA_MAX_LOADED_MODELS=1
       - OLLAMA_KEEP_ALIVE=-1
-    mem_limit: 6g
+    # 8B Q4_K_M ~4.9 GB de pesos; folga p/ KV cache + runner (na GPU o peso vai
+    # p/ VRAM, mas o load path ainda usa RAM de host; no CPU-only precisa de tudo).
+    mem_limit: 10g
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "ollama", "ls"]

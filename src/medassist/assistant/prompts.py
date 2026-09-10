@@ -50,16 +50,42 @@ TEMPLATE_RECUSA = (
     "clínicos, condutas médicas ou casos de pacientes cadastrados."
 )
 
-# Heuristica determinística de triagem (~40 termos clínicos)
+# Heuristica determinística de triagem (pré-filtro por palavra-chave antes do LLM).
+# Cobre o vocabulário dos 25 protocolos (PROT-001..025) + termos genéricos.
 TERMOS_CLINICOS = [
+    # genéricos
+    "protocolo", "conduta", "tratamento", "manejo", "abordagem", "diagnóstico",
+    "diagnostico", "sintoma", "sintomas", "exame", "exames", "medicação", "medicacao",
+    "dose", "posologia", "paciente", "quadro clínico", "quadro clinico", "febre",
+    "taquicardia", "dispneia", "dispnéia", "choque", "hipotensão", "hipotensao",
+    "hipoxemia", "saturação", "saturacao", "gasometria", "uti", "escalonar",
+    "internação", "internacao", "antibiótico", "antibiotico", "anticoagulação",
+    "anticoagulacao", "reposição volêmica", "cristaloide", "vasopressor",
+    # PROT-001..012
     "sepse", "séptico", "septico", "dor torácica", "dor toracica", "infarto",
-    "hipoglicemia", "glicemia", "avc", "acidente vascular", "hipertensiva",
-    "hipertensão", "hipertensao", "anafilaxia", "alergia", "pneumonia",
-    "cetoacidose", "diabetes", "diabético", "diabetico", "tep",
-    "tromboembolismo", "embolia", "hemorragia digestiva", "melena",
-    "hematêmese", "hematemese", "delirium", "confusão mental", "confusao mental",
-    "dor abdominal", "abdome agudo", "protocolo", "conduta", "tratamento",
-    "diagnóstico", "diagnostico", "sintoma", "sintomas", "exame", "exames",
-    "medicação", "medicacao", "dose", "posologia", "paciente", "quadro clínico",
-    "quadro clinico", "febre", "taquicardia", "dispneia", "choque",
+    "síndrome coronariana", "sindrome coronariana", "sca", "dissecção de aorta",
+    "hipoglicemia", "glicemia", "avc", "acidente vascular", "trombólise", "trombolise",
+    "alteplase", "hipertensiva", "hipertensão", "hipertensao", "crise hipertensiva",
+    "anafilaxia", "alergia", "adrenalina", "pneumonia", "pac", "curb-65",
+    "cetoacidose", "cad", "diabetes", "diabético", "diabetico", "tep",
+    "tromboembolismo", "embolia pulmonar", "hemorragia digestiva", "hda", "melena",
+    "hematêmese", "hematemese", "varizes", "delirium", "confusão mental",
+    "confusao mental", "dor abdominal", "abdome agudo", "apendicite", "peritonite",
+    # PROT-013..025
+    "fibrilação atrial", "fibrilacao atrial", "fa aguda", "arritmia", "cardioversão",
+    "cardioversao", "estado de mal", "convulsão", "convulsao", "crise convulsiva",
+    "epiléptico", "epileptico", "benzodiazepínico", "benzodiazepinico",
+    "lesão renal", "lesao renal", "lra", "creatinina", "diálise", "dialise",
+    "hipercalemia", "potássio", "potassio", "gluconato de cálcio", "hiponatremia",
+    "sódio", "sodio", "salina hipertônica", "hipertonica", "paracetamol",
+    "acetaminofeno", "intoxicação", "intoxicacao", "n-acetilcisteína", "overdose",
+    "dpoc", "exacerbação", "exacerbacao", "ventilação não invasiva", "vni",
+    "broncodilatador", "asma", "asmática", "asmatica", "sibilância", "pico de fluxo",
+    "meningite", "rigidez de nuca", "líquor", "liquor", "punção lombar",
+    "puncao lombar", "dexametasona", "pielonefrite", "itu", "infecção urinária",
+    "infeccao urinaria", "dor lombar", "giordano", "urocultura", "abstinência",
+    "abstinencia", "alcoólica", "alcoolica", "delirium tremens", "ciwa", "tiamina",
+    "analgesia", "dor aguda", "opioide", "morfina", "dipirona", "escala de dor",
+    "trombose venosa", "tvp", "d-dímero", "d-dimero", "wells", "hemoglobina",
+    "transfusão", "transfusao",
 ]

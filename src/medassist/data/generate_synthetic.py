@@ -451,6 +451,618 @@ PROTOCOLOS = [
             ),
         },
     },
+    {
+        "id": "PROT-013",
+        "titulo": "Manejo da Fibrilação Atrial Aguda",
+        "versao": "1.0",
+        "atualizado_em": "2025-10-22",
+        "secoes": {
+            "Definição e critérios": (
+                "Fibrilação atrial (FA) aguda é a arritmia supraventricular sustentada de "
+                "início recente (documentado ou presumido em até 48h) ou primeiro "
+                "episódio identificado, caracterizada por ritmo irregularmente irregular "
+                "sem onda P definida ao eletrocardiograma. A conduta é orientada pela "
+                "estabilidade hemodinâmica, pelo tempo de início e pelo risco "
+                "tromboembólico estimado pelo escore CHA2DS2-VASc."
+            ),
+            "Conduta inicial": (
+                "Avaliar estabilidade imediatamente: FA com hipotensão, angina, congestão "
+                "pulmonar ou rebaixamento de consciência indica cardioversão elétrica "
+                "sincronizada de emergência. No paciente estável, definir a estratégia "
+                "entre controle de frequência e controle de ritmo, investigar e tratar "
+                "fatores desencadeantes (sepse, tireotoxicose, distúrbio eletrolítico, "
+                "tromboembolismo pulmonar, síndrome coronariana) e estimar o tempo de "
+                "início para orientar a segurança da cardioversão. Solicitar "
+                "eletrocardiograma, eletrólitos, função tireoidiana e função renal."
+            ),
+            "Medicações e doses de referência": (
+                "Controle de frequência no paciente estável sem disfunção ventricular "
+                "importante: betabloqueador (metoprolol 2,5–5 mg EV lento, repetível) ou "
+                "diltiazem 0,25 mg/kg EV, seguidos de dose oral de manutenção, com meta "
+                "de frequência cardíaca em repouso abaixo de 110 bpm. Em disfunção "
+                "sistólica significativa, preferir amiodarona 150 mg EV em 10 minutos "
+                "seguida de infusão. Cardioversão química eletiva pode ser feita com "
+                "amiodarona ou propafenona em casos selecionados. Anticoagulação plena "
+                "conforme CHA2DS2-VASc e conforme tempo de início: FA com 48h ou mais, ou "
+                "de início indeterminado, exige anticoagulação por 3 semanas antes de "
+                "cardioversão eletiva ou ecocardiograma transesofágico prévio para "
+                "excluir trombo."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Instabilidade hemodinâmica, resposta ventricular não controlada apesar "
+                "de medicação endovenosa, suspeita de via acessória (QRS largo e muito "
+                "rápido, contraindicando bloqueadores do nó atrioventricular) ou FA "
+                "associada a síndrome coronariana aguda exigem acionamento imediato da "
+                "cardiologia e monitorização em unidade com suporte para cardioversão. "
+                "Todo paciente com indicação de anticoagulação deve ter o risco de "
+                "sangramento avaliado e documentado antes do início."
+            ),
+        },
+    },
+    {
+        "id": "PROT-014",
+        "titulo": "Manejo do Estado de Mal Epiléptico no Adulto",
+        "versao": "1.1",
+        "atualizado_em": "2025-11-18",
+        "secoes": {
+            "Definição e critérios": (
+                "Estado de mal epiléptico é definido operacionalmente como crise "
+                "convulsiva contínua por 5 minutos ou mais, ou duas ou mais crises sem "
+                "recuperação completa da consciência entre elas. É emergência "
+                "neurológica: o risco de lesão neuronal e de refratariedade aumenta "
+                "progressivamente com a duração, tornando o controle rápido a prioridade "
+                "absoluta."
+            ),
+            "Conduta inicial": (
+                "Garantir via aérea, oxigenação e acesso venoso, e cronometrar a crise. "
+                "Glicemia capilar imediata e correção se hipoglicemia. Coletar "
+                "eletrólitos, cálcio, magnésio, função renal e hepática, nível sérico de "
+                "anticonvulsivantes em uso e triagem toxicológica quando pertinente. "
+                "Administrar benzodiazepínico como primeira linha sem aguardar exames. Se "
+                "a crise persistir após a dose inicial de benzodiazepínico, iniciar "
+                "imediatamente droga antiepiléptica de segunda linha em dose de ataque. "
+                "Tomografia de crânio e punção lombar conforme suspeita etiológica, após "
+                "estabilização."
+            ),
+            "Medicações e doses de referência": (
+                "Primeira linha: diazepam 10 mg EV (ou midazolam 10 mg IM se não houver "
+                "acesso venoso), repetível uma vez após 5 minutos. Segunda linha (dose de "
+                "ataque, escolher uma): fenitoína 20 mg/kg EV em infusão lenta com "
+                "monitorização cardíaca, ácido valproico 40 mg/kg EV, ou levetiracetam 60 "
+                "mg/kg EV. Estado de mal refratário (persistência após primeira e segunda "
+                "linhas): indução de coma com midazolam ou propofol em infusão contínua "
+                "sob ventilação mecânica e monitorização eletroencefalográfica contínua."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Persistência da crise após benzodiazepínico e droga de segunda linha "
+                "caracteriza estado de mal refratário e exige intubação orotraqueal, "
+                "infusão contínua de anestésico e transferência para UTI com "
+                "eletroencefalograma contínuo. Crises focais que não geram rebaixamento, "
+                "febre com rigidez de nuca, déficit focal novo ou primeira crise na vida "
+                "adulta exigem investigação etiológica ampliada com neuroimagem e "
+                "avaliação da neurologia."
+            ),
+        },
+    },
+    {
+        "id": "PROT-015",
+        "titulo": "Abordagem Inicial da Lesão Renal Aguda",
+        "versao": "1.0",
+        "atualizado_em": "2025-09-12",
+        "secoes": {
+            "Definição e critérios": (
+                "Lesão renal aguda (LRA) é definida pelos critérios KDIGO: aumento da "
+                "creatinina sérica ≥ 0,3 mg/dL em 48h, aumento ≥ 1,5 vez o valor de base "
+                "em 7 dias, ou débito urinário < 0,5 mL/kg/h por 6h ou mais. A "
+                "classificação em estágios 1 a 3 orienta a intensidade da investigação e "
+                "do monitoramento. A abordagem diagnóstica separa causas pré-renais, "
+                "renais intrínsecas e pós-renais (obstrutivas)."
+            ),
+            "Conduta inicial": (
+                "Revisar a volemia e a perfusão: avaliar sinais de hipovolemia ou de "
+                "congestão, aferir pressão e diurese, e otimizar o estado volêmico com "
+                "cristaloide se houver hipoperfusão. Suspender nefrotoxinas "
+                "(anti-inflamatórios não esteroidais, aminoglicosídeos, contraste iodado "
+                "eletivo, inibidores da enzima conversora em contexto de instabilidade). "
+                "Solicitar ultrassonografia de rins e vias urinárias para excluir "
+                "obstrução, além de urina tipo 1, sódio urinário e relação "
+                "proteína/creatinina. Ajustar doses de todos os fármacos à função renal "
+                "estimada."
+            ),
+            "Medicações e doses de referência": (
+                "Não há fármaco que reverta a LRA estabelecida; o tratamento é de "
+                "suporte. Reposição volêmica com cristaloide balanceado titulada à "
+                "resposta em LRA pré-renal. Diuréticos (furosemida) apenas para controle "
+                "de hipervolemia sintomática, nunca para \"proteção renal\" ou para "
+                "converter oligúria em não oligúria. Corrigir hipercalemia e acidose "
+                "conforme protocolos específicos. Ajuste posológico rigoroso de "
+                "antimicrobianos e anticoagulantes à taxa de filtração glomerular "
+                "estimada."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Indicações de terapia de substituição renal de urgência: hipercalemia "
+                "refratária, acidose metabólica grave refratária, hipervolemia com edema "
+                "agudo de pulmão sem resposta a diurético, uremia sintomática "
+                "(encefalopatia, pericardite) e algumas intoxicações dialisáveis. Anúria, "
+                "LRA estágio 3, ausência de causa pré-renal ou pós-renal identificável, "
+                "ou suspeita de glomerulonefrite rapidamente progressiva exigem "
+                "acionamento da nefrologia."
+            ),
+        },
+    },
+    {
+        "id": "PROT-016",
+        "titulo": "Manejo Agudo da Hipercalemia",
+        "versao": "1.1",
+        "atualizado_em": "2025-10-08",
+        "secoes": {
+            "Definição e critérios": (
+                "Hipercalemia é definida por potássio sérico > 5,5 mEq/L, classificada em "
+                "leve (5,5–5,9), moderada (6,0–6,4) e grave (≥ 6,5 mEq/L ou qualquer "
+                "nível com alterações eletrocardiográficas ou sintomas). É emergência "
+                "quando há alterações no eletrocardiograma (ondas T apiculadas, "
+                "alargamento do QRS, achatamento da onda P, padrão sinusoidal) ou "
+                "fraqueza muscular ascendente, pelo risco de arritmia ventricular e "
+                "assistolia."
+            ),
+            "Conduta inicial": (
+                "Obter eletrocardiograma imediato em toda hipercalemia moderada ou grave "
+                "e repetir amostra para excluir pseudo-hipercalemia (hemólise da coleta) "
+                "quando o quadro clínico não for compatível. Monitorização cardíaca "
+                "contínua. Suspender fontes de potássio (suplementos, soluções, "
+                "poupadores de potássio, inibidores da enzima conversora, bloqueadores do "
+                "receptor de angiotensina, anti-inflamatórios). Identificar e tratar a "
+                "causa (lesão renal aguda, rabdomiólise, acidose, medicações)."
+            ),
+            "Medicações e doses de referência": (
+                "Com alteração eletrocardiográfica: gluconato de cálcio 10% 10–20 mL EV "
+                "em 2–3 minutos para estabilização de membrana (início em minutos, sem "
+                "efeito sobre o potássio sérico), repetível se não houver melhora do "
+                "traçado. Deslocamento intracelular: insulina regular 10 UI EV com "
+                "glicose 25 g EV (50 mL de glicose 50%), e beta-2-agonista inalatório "
+                "(salbutamol 10–20 mg nebulizado). Remoção do potássio corporal: "
+                "diurético de alça se o paciente responder, resina de troca "
+                "(poliestirenossulfonato) para efeito mais tardio, e hemodiálise nos "
+                "casos refratários ou com lesão renal grave."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Potássio ≥ 6,5 mEq/L, alterações eletrocardiográficas, arritmia, "
+                "fraqueza muscular importante ou hipercalemia refratária às medidas "
+                "iniciais exigem monitorização em unidade de terapia intensiva e "
+                "acionamento da nefrologia para hemodiálise. Anúria ou lesão renal aguda "
+                "oligúrica associada torna as medidas de deslocamento apenas "
+                "temporizadoras até a diálise."
+            ),
+        },
+    },
+    {
+        "id": "PROT-017",
+        "titulo": "Abordagem Inicial da Hiponatremia",
+        "versao": "1.0",
+        "atualizado_em": "2025-08-28",
+        "secoes": {
+            "Definição e critérios": (
+                "Hiponatremia é definida por sódio sérico < 135 mEq/L, classificada em "
+                "leve (130–134), moderada (125–129) e grave (< 125 mEq/L). A gravidade "
+                "clínica depende mais da velocidade de instalação do que do valor "
+                "absoluto: hiponatremia aguda (< 48h) cursa com edema cerebral e sintomas "
+                "neurológicos (cefaleia, vômitos, confusão, convulsão, coma), enquanto a "
+                "crônica costuma ser oligossintomática. A avaliação inicial classifica o "
+                "estado volêmico em hipovolêmico, euvolêmico ou hipervolêmico e mede a "
+                "osmolaridade sérica e urinária e o sódio urinário."
+            ),
+            "Conduta inicial": (
+                "Definir se há sintomas neurológicos graves, que indicam correção "
+                "imediata independentemente da causa. Coletar osmolaridade sérica "
+                "(excluir pseudo-hiponatremia e hiponatremia hipertônica por "
+                "hiperglicemia), osmolaridade e sódio urinários, e avaliar clinicamente a "
+                "volemia. Rever medicações associadas (diuréticos tiazídicos, "
+                "antidepressivos, carbamazepina). No paciente assintomático ou com "
+                "sintomas leves, a correção é lenta e direcionada à causa; a restrição "
+                "hídrica é a base no quadro euvolêmico por secreção inapropriada de "
+                "hormônio antidiurético."
+            ),
+            "Medicações e doses de referência": (
+                "Hiponatremia sintomática grave: salina hipertônica a 3% 100–150 mL EV em "
+                "bolus em 10 minutos, repetível 1–2 vezes conforme resposta clínica, com "
+                "meta de elevação do sódio de 4–6 mEq/L nas primeiras horas para reverter "
+                "o edema cerebral. Limite de segurança: não ultrapassar 8 mEq/L de "
+                "elevação em 24h (10–12 mEq/L como teto absoluto) pelo risco de síndrome "
+                "de desmielinização osmótica. Hipovolemia: reposição com salina isotônica "
+                "0,9%. Hipervolemia (insuficiência cardíaca, cirrose): restrição hídrica "
+                "e de sódio, diurético de alça. Controle do sódio sérico a cada 2–4h "
+                "durante a correção ativa."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Convulsão, rebaixamento do nível de consciência, sódio < 120 mEq/L ou "
+                "hiponatremia aguda sintomática exigem UTI, salina hipertônica e controle "
+                "laboratorial seriado. Correção mais rápida que o limite de segurança "
+                "exige medidas para reduzir a velocidade (água livre, desmopressina) e "
+                "acionamento da nefrologia ou endocrinologia. Suspeita de insuficiência "
+                "adrenal ou hipotireoidismo grave como causa deve ser investigada."
+            ),
+        },
+    },
+    {
+        "id": "PROT-018",
+        "titulo": "Manejo da Intoxicação Aguda por Paracetamol",
+        "versao": "1.0",
+        "atualizado_em": "2025-07-30",
+        "secoes": {
+            "Definição e critérios": (
+                "Intoxicação por paracetamol (acetaminofeno) é uma das principais causas "
+                "de insuficiência hepática aguda induzida por fármaco. A dose tóxica "
+                "aguda em adultos é geralmente ≥ 7,5–10 g ou ≥ 150 mg/kg em ingestão "
+                "única. A evolução clínica tem quatro fases: inespecífica nas primeiras "
+                "24h, hepatotoxicidade entre 24–72h (elevação de transaminases), pico de "
+                "disfunção hepática em 72–96h e recuperação ou falência. A concentração "
+                "sérica de paracetamol medida 4h ou mais após a ingestão, plotada no "
+                "nomograma de Rumack-Matthew, define o risco quando o horário da ingestão "
+                "é conhecido."
+            ),
+            "Conduta inicial": (
+                "Estabelecer o horário e a dose ingerida e se a ingestão foi única ou "
+                "escalonada. Carvão ativado 1 g/kg VO se a apresentação ocorrer em até "
+                "1–2h da ingestão e a via aérea estiver protegida. Coletar "
+                "paracetamolemia (a partir de 4h da ingestão), transaminases, tempo de "
+                "protrombina/RNI, função renal, gasometria e glicemia. Iniciar "
+                "N-acetilcisteína se: nível acima da linha de tratamento do nomograma; "
+                "ingestão ≥ 150 mg/kg com nível indisponível; apresentação tardia (> 8h) "
+                "com dose tóxica; ou evidência de lesão hepática. Não atrasar a "
+                "N-acetilcisteína aguardando o nível quando a apresentação for após 8h da "
+                "ingestão."
+            ),
+            "Medicações e doses de referência": (
+                "N-acetilcisteína endovenosa em regime de 21h: 150 mg/kg em 1h, seguidos "
+                "de 50 mg/kg em 4h e 100 mg/kg em 16h; manter além das 21h se ainda "
+                "houver transaminases em elevação, RNI alargado ou paracetamol "
+                "detectável. Alternativa oral: 140 mg/kg de ataque seguidos de 70 mg/kg "
+                "4/4h por 17 doses. Suporte: correção de hipoglicemia, vitamina K e "
+                "hemoderivados conforme coagulopatia e sangramento."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Critérios de encaminhamento para centro de transplante hepático (King's "
+                "College): pH < 7,3 após ressuscitação, ou a combinação de RNI > 6,5, "
+                "creatinina > 3,4 mg/dL e encefalopatia grau III–IV. Acidose persistente, "
+                "hipoglicemia refratária, RNI em ascensão após 48h, lactato elevado ou "
+                "encefalopatia exigem UTI e contato imediato com a hepatologia e o "
+                "serviço de transplante. Contato com o centro de informação toxicológica "
+                "é recomendado em todos os casos."
+            ),
+        },
+    },
+    {
+        "id": "PROT-019",
+        "titulo": "Manejo da Exacerbação Aguda da DPOC",
+        "versao": "1.2",
+        "atualizado_em": "2025-11-05",
+        "secoes": {
+            "Definição e critérios": (
+                "Exacerbação aguda da doença pulmonar obstrutiva crônica (DPOC) é a piora "
+                "sustentada dos sintomas respiratórios além da variação diária habitual, "
+                "com aumento da dispneia, do volume ou da purulência do escarro, exigindo "
+                "mudança de tratamento. A gravidade é estratificada pela intensidade da "
+                "dispneia, uso de musculatura acessória, nível de consciência, saturação "
+                "e gasometria arterial. Os desencadeantes mais comuns são infecções "
+                "virais e bacterianas do trato respiratório e poluição; o tromboembolismo "
+                "pulmonar e a insuficiência cardíaca são diagnósticos diferenciais a "
+                "excluir."
+            ),
+            "Conduta inicial": (
+                "Oxigenoterapia titulada com meta de saturação de 88–92% (evitar "
+                "hiperóxia pelo risco de hipercapnia). Broncodilatadores de curta ação "
+                "inalatórios de forma frequente. Gasometria arterial nos casos moderados "
+                "a graves para avaliar acidose respiratória e hipercapnia. Radiografia de "
+                "tórax para excluir pneumonia e pneumotórax. Iniciar ventilação não "
+                "invasiva precocemente na presença de acidose respiratória (pH < 7,35 com "
+                "pCO2 elevada) ou trabalho respiratório importante. Corticoide sistêmico "
+                "e antibiótico conforme critérios."
+            ),
+            "Medicações e doses de referência": (
+                "Broncodilatador: salbutamol 2,5–5 mg associado a ipratrópio 0,5 mg "
+                "nebulizados a cada 20 minutos na primeira hora, depois espaçar. "
+                "Corticoide: prednisona 40 mg VO por 5 dias (ou "
+                "hidrocortisona/metilprednisolona EV se via oral inviável). Antibiótico "
+                "quando há aumento da purulência do escarro associado a aumento do volume "
+                "ou da dispneia, ou necessidade de ventilação: amoxicilina-clavulanato "
+                "875/125 mg VO 12/12h ou macrolídeo por 5–7 dias, ajustando conforme "
+                "fatores de risco para Pseudomonas."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Acidose respiratória progressiva apesar de ventilação não invasiva, "
+                "rebaixamento do nível de consciência, instabilidade hemodinâmica, "
+                "hipoxemia refratária ou intolerância à máscara indicam intubação "
+                "orotraqueal e UTI. Falha da ventilação não invasiva na primeira a "
+                "segunda hora (sem melhora do pH e da pCO2) é preditor de necessidade de "
+                "via aérea avançada e exige reavaliação imediata."
+            ),
+        },
+    },
+    {
+        "id": "PROT-020",
+        "titulo": "Manejo da Crise Asmática no Adulto",
+        "versao": "1.1",
+        "atualizado_em": "2025-09-25",
+        "secoes": {
+            "Definição e critérios": (
+                "Crise asmática (exacerbação) é o agravamento progressivo de dispneia, "
+                "tosse, sibilância e aperto torácico, com redução do pico de fluxo "
+                "expiratório. A gravidade é classificada em leve a moderada (fala em "
+                "frases, frequência respiratória aumentada, saturação ≥ 92%, pico de "
+                "fluxo > 50% do previsto), grave (fala em palavras, uso de musculatura "
+                "acessória, frequência respiratória ≥ 30, frequência cardíaca ≥ 120, "
+                "saturação < 92%, pico de fluxo ≤ 50%) e muito grave / risco de vida "
+                "(sonolência, confusão, tórax silencioso, bradicardia, esforço "
+                "respiratório débil)."
+            ),
+            "Conduta inicial": (
+                "Oxigênio suplementar para meta de saturação de 93–95%. Beta-2-agonista "
+                "de curta ação por nebulização ou espaçador de forma repetida na primeira "
+                "hora, associado a anticolinérgico de curta ação nas crises graves. "
+                "Corticoide sistêmico precoce (na primeira hora) em toda crise moderada a "
+                "grave ou em quem já usava corticoide. Reavaliar resposta clínica e pico "
+                "de fluxo após cada ciclo. Radiografia de tórax apenas se suspeita de "
+                "complicação (pneumotórax, pneumonia). Gasometria arterial na crise grave "
+                "que não melhora: pCO2 normal ou elevada em paciente taquipneico é sinal "
+                "de fadiga e alarme."
+            ),
+            "Medicações e doses de referência": (
+                "Salbutamol 2,5–5 mg nebulizado (ou 4–10 jatos com espaçador) a cada 20 "
+                "minutos por 3 doses, depois conforme resposta. Ipratrópio 0,5 mg "
+                "nebulizado associado nas crises graves. Corticoide: prednisona 40–50 mg "
+                "VO por 5–7 dias, ou hidrocortisona 200 mg EV se via oral inviável. "
+                "Sulfato de magnésio 2 g EV em 20 minutos na crise grave sem resposta ao "
+                "tratamento inicial. Considerar beta-2-agonista endovenoso e terapia "
+                "intensiva nos casos refratários."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Rebaixamento do nível de consciência, tórax silencioso, bradicardia, "
+                "hipoxemia refratária, pCO2 em elevação ou exaustão respiratória indicam "
+                "risco de parada e necessidade de intubação por profissional experiente e "
+                "UTI. Ausência de melhora do pico de fluxo após 1h de tratamento "
+                "otimizado, ou necessidade de beta-2-agonista contínuo, exige internação "
+                "e monitorização intensiva."
+            ),
+        },
+    },
+    {
+        "id": "PROT-021",
+        "titulo": "Manejo Inicial da Suspeita de Meningite Bacteriana Aguda",
+        "versao": "1.1",
+        "atualizado_em": "2025-10-30",
+        "secoes": {
+            "Definição e critérios": (
+                "Meningite bacteriana aguda é infecção supurativa das meninges, com alta "
+                "letalidade e risco de sequelas, exigindo tratamento em caráter de "
+                "emergência. A tríade clássica (febre, rigidez de nuca e alteração do "
+                "estado mental) está completa em menos da metade dos casos; a maioria "
+                "apresenta ao menos dois de quatro achados (febre, cefaleia, rigidez de "
+                "nuca, alteração do estado mental). Sinais de gravidade incluem "
+                "rebaixamento do nível de consciência, crise convulsiva, déficit focal e "
+                "petéquias/púrpura (sugestivas de doença meningocócica)."
+            ),
+            "Conduta inicial": (
+                "A prioridade é não atrasar o antibiótico. Coletar hemoculturas e iniciar "
+                "antibioticoterapia empírica associada a dexametasona imediatamente. "
+                "Realizar punção lombar assim que possível; se houver indicação de "
+                "tomografia de crânio antes da punção (imunossupressão, história de "
+                "doença do sistema nervoso central, crise convulsiva recente, papiledema, "
+                "déficit focal, rebaixamento importante), colher hemocultura e "
+                "administrar antibiótico e corticoide antes do exame de imagem, sem "
+                "aguardar. Enviar líquor para celularidade, bioquímica, Gram, cultura e, "
+                "quando disponível, painel molecular."
+            ),
+            "Medicações e doses de referência": (
+                "Empírico no adulto imunocompetente: ceftriaxona 2 g EV 12/12h associada "
+                "a vancomicina 15–20 mg/kg EV 8/8–12/12h. Adicionar ampicilina 2 g EV "
+                "4/4h se idade > 50 anos, gestante, etilismo ou imunossupressão "
+                "(cobertura de Listeria). Dexametasona 10 mg EV 6/6h por 4 dias, iniciada "
+                "15–20 minutos antes ou junto com a primeira dose do antibiótico; "
+                "suspender se a cultura não confirmar pneumococo. Aciclovir empírico se a "
+                "encefalite herpética for diferencial relevante."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Rebaixamento do nível de consciência, instabilidade hemodinâmica, crise "
+                "convulsiva, sinais de hipertensão intracraniana ou rash purpúrico "
+                "rapidamente progressivo exigem UTI e suporte avançado. Notificação "
+                "compulsória e quimioprofilaxia de contactantes próximos na doença "
+                "meningocócica e por Haemophilus. Reavaliação da necessidade de "
+                "neuroimagem e de avaliação neurocirúrgica se houver piora ou suspeita de "
+                "complicação (empiema, abscesso, hidrocefalia)."
+            ),
+        },
+    },
+    {
+        "id": "PROT-022",
+        "titulo": "Manejo da Pielonefrite Aguda no Adulto",
+        "versao": "1.0",
+        "atualizado_em": "2025-08-19",
+        "secoes": {
+            "Definição e critérios": (
+                "Pielonefrite aguda é a infecção do trato urinário superior (parênquima e "
+                "pelve renais), caracterizada por febre, dor lombar ou no flanco e sinal "
+                "de Giordano positivo, com ou sem sintomas urinários baixos. Distingue-se "
+                "da cistite pela presença de sinais sistêmicos. Considera-se complicada "
+                "quando há gestação, obstrução, cálculo, cateter, imunossupressão, "
+                "diabetes descompensado, anomalia do trato urinário ou sinais de sepse. "
+                "Escores de gravidade e a avaliação de disfunção orgânica orientam a "
+                "necessidade de internação."
+            ),
+            "Conduta inicial": (
+                "Coletar urina tipo 1 e urocultura com antibiograma antes do antibiótico, "
+                "além de hemograma, função renal e, nos casos com sinais sistêmicos, "
+                "hemoculturas e lactato. Iniciar antibioticoterapia empírica precoce "
+                "ajustada ao perfil de resistência local. Solicitar imagem "
+                "(ultrassonografia ou tomografia) quando houver pielonefrite complicada, "
+                "suspeita de obstrução ou de abscesso, ou ausência de melhora clínica em "
+                "48–72h. Hidratação e analgesia/antitérmico conforme necessidade."
+            ),
+            "Medicações e doses de referência": (
+                "Tratamento ambulatorial (quadro não complicado, sem vômitos, "
+                "hemodinamicamente estável): ciprofloxacino 500 mg VO 12/12h por 7 dias "
+                "ou ceftriaxona 1 g EV/IM em dose inicial seguida de esquema oral guiado "
+                "pela cultura. Tratamento hospitalar: ceftriaxona 1–2 g EV 24/24h, ou "
+                "piperacilina-tazobactam 4,5 g EV 6/6h se fatores de risco para germe "
+                "resistente; ajustar conforme urocultura. Duração total de 7–14 dias "
+                "conforme agente, resposta e presença de complicação. Evitar "
+                "nitrofurantoína e fosfomicina, que não atingem concentração tecidual "
+                "adequada no parênquima renal."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Sinais de sepse ou choque séptico, obstrução do trato urinário com "
+                "infecção (pionefrose — emergência urológica que exige drenagem "
+                "imediata), abscesso renal ou perinéfrico, gestação, e falha do "
+                "tratamento em 48–72h exigem internação, imagem e acionamento da "
+                "urologia. Pielonefrite enfisematosa em diabéticos é grave e pode exigir "
+                "intervenção cirúrgica."
+            ),
+        },
+    },
+    {
+        "id": "PROT-023",
+        "titulo": "Manejo da Síndrome de Abstinência Alcoólica",
+        "versao": "1.0",
+        "atualizado_em": "2025-11-22",
+        "secoes": {
+            "Definição e critérios": (
+                "A síndrome de abstinência alcoólica ocorre em pacientes com uso crônico "
+                "e pesado de álcool após redução ou interrupção do consumo. O espectro "
+                "vai de sintomas leves (tremor, ansiedade, insonia, taquicardia, "
+                "hipertensão) iniciados em 6–12h, passando por alucinose alcoólica "
+                "(12–24h) e crises convulsivas tônico-clônicas (12–48h), até o delirium "
+                "tremens (48–96h): confusão profunda, agitação, alucinações, "
+                "hiperatividade autonômica intensa e risco de morte. A escala CIWA-Ar "
+                "quantifica a gravidade e orienta a terapia guiada por sintomas."
+            ),
+            "Conduta inicial": (
+                "Estratificar o risco com CIWA-Ar e identificar fatores de risco para "
+                "abstinência grave (episódio prévio de delirium tremens ou convulsão, uso "
+                "muito intenso, comorbidades agudas). Corrigir hipovolemia e distúrbios "
+                "eletrolíticos, com atenção a magnésio, potássio e fósforo. Administrar "
+                "tiamina antes de qualquer solução glicosada para prevenir encefalopatia "
+                "de Wernicke. Ambiente calmo, monitorização de sinais vitais e "
+                "reavaliação frequente com a escala. Investigar condições associadas "
+                "(infecção, trauma craniano, pancreatite, hepatopatia descompensada, "
+                "hematoma subdural)."
+            ),
+            "Medicações e doses de referência": (
+                "Benzodiazepínico é a base do tratamento, preferencialmente guiado por "
+                "sintomas: diazepam 10–20 mg VO/EV repetidos conforme CIWA-Ar, ou "
+                "lorazepam (preferível em hepatopatia grave ou idoso) 2–4 mg. Tiamina 300 "
+                "mg EV/IM ao menos nos primeiros dias, antes de glicose. Reposição de "
+                "magnésio se hipomagnesemia. Em delirium tremens refratário a doses altas "
+                "de benzodiazepínico, considerar fenobarbital ou infusão contínua sob "
+                "monitorização em UTI. Antipsicótico apenas como adjuvante para "
+                "alucinação/agitação, nunca em substituição ao benzodiazepínico (reduz "
+                "limiar convulsivo)."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Delirium tremens, convulsões repetidas, necessidade de doses muito altas "
+                "ou frequentes de benzodiazepínico, hipertermia, instabilidade autonômica "
+                "grave ou comorbidade aguda descompensada exigem UTI. Convulsão focal, "
+                "estado de mal, déficit neurológico ou trauma craniano associado exigem "
+                "neuroimagem e avaliação neurológica. Encaminhamento para acompanhamento "
+                "do transtorno por uso de álcool após a fase aguda."
+            ),
+        },
+    },
+    {
+        "id": "PROT-024",
+        "titulo": "Analgesia Multimodal na Dor Aguda Intra-hospitalar",
+        "versao": "1.0",
+        "atualizado_em": "2025-12-05",
+        "secoes": {
+            "Definição e critérios": (
+                "Dor aguda intra-hospitalar deve ser avaliada de forma sistemática e "
+                "reavaliada após cada intervenção, usando escala validada (numérica de 0 "
+                "a 10 ou de faces). A analgesia multimodal combina fármacos com "
+                "mecanismos de ação diferentes para maximizar o efeito e reduzir a dose e "
+                "os efeitos adversos de cada classe, sobretudo dos opioides. A escada "
+                "analgésica orienta a escolha inicial pela intensidade: dor leve (1–3), "
+                "moderada (4–6) e intensa (7–10)."
+            ),
+            "Conduta inicial": (
+                "Identificar o mecanismo predominante (nociceptiva somática/visceral, "
+                "neuropática) e a causa, tratando-a sempre que possível. Iniciar "
+                "analgésico não opioide de base (paracetamol e/ou anti-inflamatório não "
+                "esteroidal, se não houver contraindicação) e adicionar opioide conforme "
+                "a intensidade. Prescrever de forma fixa (horário regular) e não apenas "
+                "\"se necessário\" na dor moderada a intensa, com resgates definidos. "
+                "Antecipar e prescrever profilaxia de efeitos adversos (antiemético, "
+                "laxante com opioide). Reavaliar em 30–60 minutos após dose endovenosa."
+            ),
+            "Medicações e doses de referência": (
+                "Base: paracetamol 1 g VO/EV 6/6h (máximo 3–4 g/dia, reduzir em "
+                "hepatopatia); dipirona 1 g EV 6/6h; ou anti-inflamatório não esteroidal "
+                "(cetoprofeno 100 mg EV 12/12h) por período curto, evitando em lesão "
+                "renal, hipovolemia, sangramento digestivo e insuficiência cardíaca "
+                "descompensada. Opioide para dor moderada a intensa: morfina 2–4 mg EV "
+                "com titulação a cada 10–15 minutos até analgesia, depois dose de "
+                "manutenção; tramadol 50–100 mg EV 6/6h como opção de potência "
+                "intermediária. Adjuvantes na dor neuropática: gabapentina ou "
+                "amitriptilina. Considerar bloqueios regionais quando aplicável."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Dor intensa refratária às medidas iniciais, necessidade crescente de "
+                "opioide, sinais de toxicidade opioide (sonolência, frequência "
+                "respiratória < 8–10 irpm, miose puntiforme — reverter com naloxona) ou "
+                "suspeita de complicação subjacente (isquemia, síndrome compartimental, "
+                "abdome agudo) exigem reavaliação médica imediata e, conforme o caso, "
+                "acionamento do serviço de dor ou da equipe cirúrgica. Dor "
+                "desproporcional ao exame é sinal de alarme."
+            ),
+        },
+    },
+    {
+        "id": "PROT-025",
+        "titulo": "Abordagem Inicial da Trombose Venosa Profunda de Membros Inferiores",
+        "versao": "1.0",
+        "atualizado_em": "2025-09-08",
+        "secoes": {
+            "Definição e critérios": (
+                "Trombose venosa profunda (TVP) de membros inferiores é a formação de "
+                "trombo no sistema venoso profundo, com risco de embolia pulmonar e de "
+                "síndrome pós-trombótica. Manifesta-se por edema assimétrico, dor, "
+                "empastamento de panturrilha, aumento de temperatura e circulação "
+                "colateral. O escore de Wells para TVP estratifica a probabilidade "
+                "pré-teste em baixa, intermediária ou alta e define a estratégia "
+                "diagnóstica com D-dímero e ultrassonografia com compressão."
+            ),
+            "Conduta inicial": (
+                "Aplicar o escore de Wells. Probabilidade baixa: D-dímero — se negativo, "
+                "exclui TVP e dispensa imagem; se positivo, ultrassonografia com "
+                "compressão. Probabilidade intermediária ou alta: ultrassonografia com "
+                "compressão diretamente; se negativa com alta suspeita, repetir em 5–7 "
+                "dias ou complementar a investigação. Avaliar fatores provocadores "
+                "(cirurgia, imobilização, câncer, uso de estrogênio, gestação, "
+                "trombofilia) para definir a duração da anticoagulação. Iniciar "
+                "anticoagulação empírica enquanto se aguarda o exame quando a suspeita "
+                "for alta e o risco de sangramento aceitável."
+            ),
+            "Medicações e doses de referência": (
+                "Anticoagulação plena: anticoagulante oral direto (rivaroxabana 15 mg VO "
+                "12/12h por 21 dias, depois 20 mg/dia; ou apixabana 10 mg VO 12/12h por 7 "
+                "dias, depois 5 mg 12/12h) como primeira escolha na maioria dos casos. "
+                "Alternativa: enoxaparina 1 mg/kg SC 12/12h com transição para varfarina "
+                "(alvo de RNI 2–3) ou para anticoagulante oral direto. Preferir heparina "
+                "de baixo peso molecular na gestação e em câncer ativo (ou anticoagulante "
+                "oral direto em casos selecionados). Duração mínima de 3 meses; TVP não "
+                "provocada ou fator de risco persistente pode exigir anticoagulação "
+                "estendida. Meias de compressão para sintomas; deambulação precoce "
+                "conforme tolerância."
+            ),
+            "Critérios de alerta e escalonamento": (
+                "Sinais de embolia pulmonar (dispneia, dor torácica, taquicardia, "
+                "hipoxemia, instabilidade) exigem investigação e conduta conforme "
+                "protocolo de tromboembolismo pulmonar. TVP iliofemoral extensa com edema "
+                "volumoso e dor importante, ou phlegmasia cerulea dolens (cianose e "
+                "comprometimento arterial), são emergências e exigem contato imediato com "
+                "a cirurgia vascular para considerar trombólise dirigida por cateter ou "
+                "trombectomia. Contraindicação à anticoagulação com TVP proximal "
+                "confirmada indica avaliação de filtro de veia cava."
+            ),
+        },
+    },
 ]
 
 TEMPLATES = {
@@ -486,22 +1098,25 @@ def _perguntas_faq(prot: dict) -> list[dict]:
     doc_id = prot["id"]
     titulo = prot["titulo"].lower()
     textos = list(prot["secoes"].values())
+    # Resposta = texto integral da seção citada. Versões anteriores truncavam em
+    # 180 caracteres + "..." (corte no meio da palavra), o que ensinava o modelo
+    # a parar no meio da frase no fine-tuning — ver docs/desvios.md item 13.
     return [
         {
             "pergunta": f"Quais os critérios diagnósticos relacionados a {titulo}?",
-            "resposta": f"Conforme {doc_id} §1, {textos[0][:180]}...",
+            "resposta": f"Conforme {doc_id} §1, {textos[0]}",
         },
         {
             "pergunta": f"Qual a conduta inicial recomendada em {titulo}?",
-            "resposta": f"Conforme {doc_id} §2, {textos[1][:180]}...",
+            "resposta": f"Conforme {doc_id} §2, {textos[1]}",
         },
         {
             "pergunta": f"Quais as doses de referência no manejo de {titulo}?",
-            "resposta": f"Conforme {doc_id} §3, {textos[2][:180]}...",
+            "resposta": f"Conforme {doc_id} §3, {textos[2]}",
         },
         {
             "pergunta": f"Quando escalonar ou alertar a equipe em caso de {titulo}?",
-            "resposta": f"Conforme {doc_id} §4, {textos[3][:180]}...",
+            "resposta": f"Conforme {doc_id} §4, {textos[3]}",
         },
         {
             "pergunta": f"Existe protocolo institucional para {titulo}?",
@@ -533,7 +1148,7 @@ def gerar_protocolos(destino: Path) -> list[Path]:
             linhas.append("")
         conteudo = "\n".join(linhas) + RODAPE
         caminho = destino / f"{prot['id']}.md"
-        caminho.write_text(conteudo, encoding="utf-8")
+        caminho.write_text(conteudo, encoding="utf-8", newline="\n")
         arquivos.append(caminho)
     return arquivos
 
@@ -556,7 +1171,7 @@ def gerar_faqs(destino: Path) -> Path:
                 )
             )
             contador += 1
-    destino.write_text("\n".join(linhas) + "\n", encoding="utf-8")
+    destino.write_text("\n".join(linhas) + "\n", encoding="utf-8", newline="\n")
     return destino
 
 
@@ -565,7 +1180,7 @@ def gerar_templates(destino: Path) -> list[Path]:
     arquivos = []
     for nome, conteudo in TEMPLATES.items():
         caminho = destino / nome
-        caminho.write_text(conteudo, encoding="utf-8")
+        caminho.write_text(conteudo, encoding="utf-8", newline="\n")
         arquivos.append(caminho)
     return arquivos
 

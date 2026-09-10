@@ -9,8 +9,10 @@
 #     no WSL2 do Docker Desktop >= 4.x - nao precisa instalar nada a mais)
 #
 # Conferir que pegou: `docker exec hecate-assist-ollama-1 ollama ps` deve mostrar
-# a coluna PROCESSOR como "100% GPU" (e nao "100% CPU"). O 3B Q4_K_M ocupa ~2 GB
-# de VRAM - sobra folga nos 8 GB.
+# a coluna PROCESSOR como "100% GPU" (e nao "100% CPU"). O 8B Q4_K_M (v4) ocupa
+# ~4.9 GB de pesos + ~1 GB de KV cache a 4096 de contexto -> ~6-6.5 GB dos 8 GB
+# da RTX 4060 Ti. Se nao couber 100% na GPU (split GPU/CPU no `ollama ps`),
+# baixar num_ctx no deploy/Modelfile.
 services:
   ollama:
     deploy:

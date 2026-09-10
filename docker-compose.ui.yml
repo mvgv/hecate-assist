@@ -1,0 +1,11 @@
+# Override local: publica a UI Streamlit do `app` na porta 8501 do host, sem Caddy
+# nem basic-auth. Uso: acessar http://localhost:8501
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.ui.yml \
+#     --profile full up -d ollama app
+#
+# NAO usar em producao (a stack de producao expoe a UI via Caddy + basic_auth).
+services:
+  app:
+    ports:
+      - "8501:8501"

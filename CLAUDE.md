@@ -50,12 +50,50 @@ O modelo aprendeu esse registro (46% do dataset, 2 épocas) e **reproduz em PT-B
 prompt pede PT-BR. Idioma não era o problema — o **conteúdo** do MedQuAD é. Traduzir bem não
 resolveria: lista de links traduzida continua lista de links.
 
-**v3 (2026-09-09) — notebook + dataset prontos, NÃO rodado ainda.** Decisão: **treinar só nos ~116
-PT-BR limpos** (protocolo + FAQ), sem MedQuAD (`N_MEDQUAD_EN=0` default). Guia §1: fine-tune ensina
-comportamento, RAG fornece fatos — 116 exemplos limpos bastam. `docs/train_v3.jsonl` gerado por
-`scripts/gen_dataset_v3.py` (116 ex., 90% citam) — **subir para `MyDrive/medassist/train_v3.jsonl`**
-e rodar com `REBUILD=False` (célula 3 só carrega). 3 épocas (dataset pequeno), `train_on_responses_only`,
-sanity check obrigatório antes do export.
+**v3 (2026-09-09) — rodada no Colab, TESTADA no Docker/GPU, FALHOU.** GGUF v3 (só ~116 PT-BR limpos,
+3 épocas, base Llama-3.2-3B) gerado e servido na GPU (`docker-compose.gpu.yml`, `ollama ps` = 100%
+GPU, 90–106 tok/s). **Progresso:** passou a emitir EOS (`done_reason: "stop"`) e a "citar". **Mas
+degenerou igual v1/v2:** PT-BR virou salada de palavras ("Sepse origina-se quando dissecion...",
+"Rebaixo de..." repetido) e em perguntas longas entrou em loop de seções `## 1..## 12` até estourar
+`num_predict`. Diagnóstico: base 3B frágil demais para QLoRA + poucos exemplos + respostas quase
+idênticas (mesma resposta longa reaproveitada ×4) → o modelo decorou a **estrutura** e perdeu
+fluência. Além disso, 48/60 FAQs do `faqs.jsonl` estavam truncadas em 180 chars com corte no meio da
+palavra (`_perguntas_faq`), reforçando "parar no meio da frase" — corrigido, ver `docs/desvios.md` §13.
+
+**v4 (2026-09-09) — notebook + dataset prontos, NÃO rodado ainda.** Duas mudanças sobre a v3:
+1. **Base 8B** (`unsloth/Meta-Llama-3.1-8B-Instruct`) — mais robusta; template `llama-3.1` e
+   `train_on_responses_only` já estavam certos, só trocou `BASE_MODEL`. 8B Q4_K_M ~4.9 GB de VRAM
+   para servir (cabe nos 8 GB da RTX 4060 Ti; `mem_limit` do `ollama` no compose subiu 6g→10g).
+2. **Dataset ~425 ex. com variedade linguística real** (`docs/train_v4.jsonl`, gerado por
+   `scripts/gen_dataset_v4.py`): núcleo `data/processed/train.jsonl` (25 protocolos + 125 FAQs
+   **completas**) + `data/synthetic/qa_clinico.jsonl` (235 perguntas de médico em linguagem natural
+   — parciais, cenários, cross-protocolo — ancoradas nos protocolos, cada uma única) + expansão ×2.
+   **13 protocolos novos** (PROT-013..025: FA, estado de mal, LRA, hipercalemia, hiponatremia,
+   paracetamol, DPOC, asma, meningite, pielonefrite, abstinência alcoólica, analgesia, TVP) somados
+   ao `PROTOCOLOS` de `generate_synthetic.py`. Treino: **2 épocas**, LR 1e-4, `MAX_SEQ_LEN=3072`,
+   `grad_accum=8`. Sanity check (célula 4b) ampliado com protocolos novos + perguntas naturais.
+
+**v4 RODADA no Colab e TESTADA no Docker/GPU (2026-09-09 23h) — degeneração RESOLVIDA, mas
+grounding ainda irregular.** GGUF 8B (md5 `1774a951...`, 4.92 GB) treinado, `ollama create` (ver
+gotcha abaixo sobre RAM), servido **100% GPU** (`ollama ps` = `100% GPU`, 5.3 GB, ~52 tok/s warm).
+- **Geração crua:** PT-BR **fluente**, emite **EOS** (`done_reason: "stop"`), formato de citação
+  `[PROT-NNN §x]` correto, sem loop nem salada de palavras. **Fim do problema v1/v2/v3.** Sem
+  contexto RAG o modelo alucina o número do protocolo e as doses (esperado — guia §1).
+- **Grafo com RAG (25 protocolos reindexados):** perguntas clínicas curtas e diretas → resposta
+  fiel e correta, cita o protocolo certo (CAD, anafilaxia, HDA, pneumonia, hemoglobina/transfusão).
+  **Mas:** respostas longas ("Explique o protocolo ...") o modelo **enche de detalhe clínico
+  inventado** e plausível; algumas queries pegam o protocolo errado no RAG (ex.: "crise
+  hipertensiva com EAP" → responde com conteúdo de DPOC); 1-2 respostas bloqueadas pelo guardrail.
+- **Corrigido nesta sessão:** `TERMOS_CLINICOS` (`prompts.py`) só cobria os 12 protocolos antigos
+  → perguntas sobre hipercalemia/DPOC/HDA/TVP caíam em `fora_escopo` **antes** do LLM. Ampliado
+  para os 25 protocolos + abreviações (HDA, DPOC, LRA, TVP, VNI...). App rebuildado, revalidado.
+- **Pendente (decisão do usuário):** (a) triagem/guardrail chamam o MESMO modelo fine-tuned —
+  ele ficou pior nessas tarefas fora da distribuição de treino; considerar usar o Llama-3.1-8B
+  **base** (ou regras) nesses nós e só `gerar_resposta` usar `medassist`; (b) RAG: reformular a
+  query em `recuperar_protocolos` (tirar "qual o protocolo de"/"existe protocolo para"), rever
+  `rag_min_score`, talvez trocar o embedding PT; (c) tirar/encurtar os exemplos "Explique o
+  protocolo" (corpo inteiro) que puxam respostas longas e confabuladas. `evaluate.py` não rodado
+  (precisa do base 8B no Ollama p/ comparar).
 
 **Performance no CPU (2026-09-09).** A trava de 19 min foi geração sem EOS + sem teto. Adicionados:
 `OllamaProvider` agora passa `num_predict` (768) e `client_kwargs={"timeout": 240}` — geração
@@ -69,9 +107,12 @@ regeneração. `OLLAMA_KEEP_ALIVE=-1` já mantém o modelo quente. Um modelo sad
 **Inferência na GPU (2026-09-09).** Host tem RTX 4060 Ti 8 GB (driver 616.64). Fine-tuning continua
 no Colab; só o serving vai pra GPU. **Nenhuma mudança de código** — o `ollama_provider` só fala HTTP.
 `docker-compose.gpu.yml` é um override que reserva a GPU pro serviço `ollama`
-(`make compose-up-gpu`, requer Docker Desktop com backend WSL2). O 3B Q4_K_M ocupa ~2 GB de VRAM e
-gera ~80-120 tok/s (vs. ~12 no CPU) → o `ask` inteiro em segundos. Conferir:
-`docker exec hecate-assist-ollama-1 ollama ps` → coluna PROCESSOR = `100% GPU`.
+(`make compose-up-gpu`, requer Docker Desktop com backend WSL2). GPU passthrough VALIDADO nesta
+sessão (`nvidia-smi` dentro da `ollama/ollama:latest`, `ollama ps` = `100% GPU`, 90-106 tok/s no 3B
+warm vs. ~12 no CPU). O 3B Q4 ocupava ~2 GB de VRAM; o **8B Q4 da v4 ocupa ~6-6.5 GB** (pesos + KV
+a 4096 de contexto) — cabe nos 8 GB, mas sem folga; se `ollama ps` mostrar split GPU/CPU, baixar
+`num_ctx` no `deploy/Modelfile`. Conferir: `docker exec hecate-assist-ollama-1 ollama ps` → coluna
+PROCESSOR = `100% GPU`.
 
 **Validado rodando de verdade** (não só testes unitários): `docker build` e
 `docker compose up app ollama` com os dois containers `healthy`, entrypoint rodando `seed-db`/`ingest`
@@ -94,55 +135,93 @@ docker exec hecate-assist-app-1 medassist ask "qual o protocolo de sepse?"
 `pytest tests/test_graph.py` — 10/10 passando, incluindo a regressão
 `test_llm_indisponivel_na_triagem_ambigua_cai_em_resposta_segura`.
 
-### Pendências — RODAR o fine-tuning v3 e fechar o Nível 2
+### Pendências — afinar a v4 e fechar o Nível 2
 
-**Onde paramos (2026-09-09):** notebook v3 + `docs/train_v3.jsonl` prontos e commitados, **não
-rodado**. Infra Docker `--profile full` 100% validada nesta sessão (build, `model-init`, `ollama
-show`, grafo). O que quebra é só o **modelo** — v1 e v2 degeneraram (ver Status).
+**Onde paramos (2026-09-09, noite):** v4 8B **treinada, servida na GPU e testada no grafo**
+(ver Status "v4 RODADA"). A degeneração v1/v2/v3 acabou — o modelo é fluente, cita e para no EOS.
+O que falta é **grounding/roteamento**, não mais "o modelo é lixo".
+
+**>>> AMANHÃ, começar pelo item 1 (separar os modelos do grafo):**
+O grafo chama LLM em 3 nós, todos no `medassist` fine-tuned: `triagem` (`nodes.py:36`),
+`gerar_resposta` (`nodes.py:123`), `checar_guardrails`/verificador (`guardrails.py:64`). O
+fine-tune v4 só treinou a tarefa do `gerar_resposta` (425 ex.) → o modelo ficou pior em
+classificar (triagem) e julgar (verificador) — daí as recusas falsas e os blocks
+`violação de segurança: 1, 2` (e os `verificador_ilegivel` da v3). **Fix:** `gerar_resposta`
+continua no `medassist`; `triagem` e `checar_guardrails` passam a um modelo de propósito geral
+**pequeno** (`llama3.2:3b` ou `qwen2.5:3b`, ~2 GB — cabe junto do 8B na GPU; o 8B base seria
+melhor mas com 8 GB de VRAM + `OLLAMA_MAX_LOADED_MODELS=1` fica trocando modelo a cada chamada).
+Passos:
+  1. `config.py`: campo `model_aux: str = "llama3.2:3b"` (env `MEDASSIST_MODEL_AUX`).
+  2. `OllamaProvider.__init__`: aceitar `model` opcional (hoje fixa `settings.model`).
+  3. `llm/base.py` `get_llm(aux: bool = False)`: se `aux`, instanciar com `settings.model_aux`.
+  4. Trocar as 2 chamadas: `nodes.py:36` e `guardrails.py:64` → `get_llm(aux=True)`.
+  5. Deploy: `model-init`/entrypoint também faz `ollama pull llama3.2:3b`.
+  6. `pytest` (usa FakeLLM, não quebra) + revalidar o grafo no Docker GPU com as perguntas que
+     hoje dão recusa falsa / block (ver Status "v4 RODADA").
+  Alternativa mais barata: desligar o verificador LLM e deixar só as regras do guardrail
+  (`fonte_alucinada` já é regra pura); triagem pode decidir só pelo pré-filtro `TERMOS_CLINICOS`.
+
+**Depois do item 1:**
+2. **RAG erra em meta-queries e algumas clínicas.** `recuperar_protocolos` (`nodes.py:73`) manda
+   a pergunta crua pro `buscar()`. "qual o protocolo de sepse?" → PROT-024; "crise hipertensiva
+   com EAP" → conteúdo de DPOC. Reformular a query (strip "qual o protocolo de"/"existe protocolo
+   para"), rever `rag_min_score` (0.35), avaliar embedding PT melhor. Retrieval funciona bem p/
+   queries clínicas diretas ("manejo da cetoacidose diabética" → PROT-008 0.72).
+3. **Respostas longas confabulam.** Os exemplos "Explique o protocolo ..." (corpo inteiro) no
+   dataset puxam respostas longas onde o modelo inventa detalhe clínico. Encurtar/remover essa
+   fatia numa v5, ou baixar `num_predict`.
+4. `python -m medassist.finetune.evaluate` — não rodado (precisa do base 8B no Ollama p/ o A/B).
+
+**Já feito nesta sessão:** `TERMOS_CLINICOS` ampliado p/ os 25 protocolos (recusas falsas de
+hipercalemia/DPOC/HDA/TVP resolvidas). 39 testes passando, `ruff` limpo. Stack de GPU no ar
+(`medassist:latest` 8B, `ollama ps` = 100% GPU).
 
 **Passo 1 — preparar o Drive.** Subir para `MyDrive/medassist/`:
-- `docs/train_v3.jsonl` → **`train_v3.jsonl`** (é o dataset; a célula 3 com `REBUILD=False` só carrega)
-- `data/processed/train.jsonl` e `data/processed/val.jsonl` (train.jsonl é fallback se não houver
-  `train_v3.jsonl`; val.jsonl é usado no `eval_dataset`)
+- `docs/train_v4.jsonl` → **`train_v4.jsonl`** (é o dataset pronto; a célula 3 com `REBUILD=False` só carrega)
+- `data/synthetic/qa_clinico.jsonl` → `qa_clinico.jsonl` (só usado se `REBUILD=True`)
+- `data/processed/train.jsonl` → `train.jsonl` (núcleo, fallback se não houver `train_v4.jsonl`)
+- `data/processed/val.jsonl` → `val.jsonl` (`eval_dataset`)
 
-**Passo 2 — rodar o notebook v3** (`notebooks/02_finetune_colab.ipynb`), runtime GPU:
+**Passo 2 — rodar o notebook v4** (`notebooks/02_finetune_colab.ipynb`), runtime GPU (Colab Pro):
 1. Células 1-2 (install, mount).
-2. Célula 3: deve imprimir `cache -> 116 exemplos de .../train_v3.jsonl`. Se imprimir "nucleo
-   limpo / expansao prot" é porque não achou o `train_v3.jsonl` no Drive (subiu?).
-3. Célula 4 (train): 3 épocas, `train_on_responses_only`, `eval_dataset`. Olhar a **eval loss** por
-   época — se subir na 3ª, `EPOCHS=2`.
-4. Célula 4b (sanity check): 3 respostas + `cita [PROT-...]` / `parou (EOS)`.
-   **Só exportar se as 3 citarem e pararem sozinhas.**
-5. Células de export → `medassist-q4_k_m.gguf` no Drive.
+2. Célula 3: deve imprimir `cache -> 425 exemplos de .../train_v4.jsonl`. Se imprimir
+   "nucleo / Q&A clinico / expansao prot" é porque não achou o `train_v4.jsonl` no Drive.
+3. Célula 4 (train): **2 épocas**, LR 1e-4, base 8B, `train_on_responses_only`, `eval_dataset`.
+   Olhar a **eval loss** por época — se subir na 2ª, `EPOCHS=1`.
+4. Célula 4b (sanity check): 6 respostas (protocolos antigos + novos, pergunta natural +
+   "explique o protocolo"). **Só exportar se todas citarem `[PROT-...]`, pararem sozinhas (EOS)
+   e o PT-BR estiver fluente (sem salada de palavras / loop de seções).**
+5. Células de export → `medassist-q4_k_m.gguf` (~4.9 GB) no Drive.
 
-**Passo 3 — teste local** (infra já validada nesta sessão):
-baixar o GGUF para `models/medassist-q4_k_m.gguf` (gitignore) → `docker compose --profile full up -d
---build ollama model-init app` → `ollama create` roda no `model-init`.
+**Passo 3 — teste local** (infra já validada):
+baixar o GGUF para `models/medassist-q4_k_m.gguf` (gitignore) → **na GPU**:
+`docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile full up -d --build
+ollama model-init app` → `ollama create` roda no `model-init`.
+- Conferir GPU: `docker exec hecate-assist-ollama-1 ollama ps` → `PROCESSOR` = `100% GPU`
+  (o 8B Q4 ocupa ~6-6.5 GB dos 8 GB; se aparecer split GPU/CPU, baixar `num_ctx` no `deploy/Modelfile`).
 - **Antes do grafo**, testar o modelo cru:
   `docker exec hecate-assist-app-1 sh -c 'curl -s http://ollama:11434/api/chat -d "{\"model\":\"medassist\",\"stream\":false,\"options\":{\"num_predict\":300},\"messages\":[{\"role\":\"user\",\"content\":\"Qual a conduta inicial na sepse?\"}]}"'`
-  → tem que vir `done_reason: "stop"` (não `"length"`), citar `[PROT-...]`, sem loop.
+  → tem que vir `done_reason: "stop"` (não `"length"`), citar `[PROT-...]`, PT-BR fluente, sem loop.
 - Só então: `docker exec hecate-assist-app-1 medassist ask "qual o protocolo de sepse?"` deve
-  **gerar** (não cair em `resposta_segura`). Opcional p/ acelerar: `-e MEDASSIST_MAX_TENTATIVAS=1`.
+  **gerar**. Opcional p/ acelerar: `-e MEDASSIST_MAX_TENTATIVAS=1`.
 - `python -m medassist.finetune.evaluate` base vs. tuned → `docs/avaliacao.md`.
 
-### Composição do dataset de fine-tuning v3 (2026-09-09) — só PT-BR limpo
+### Composição do dataset de fine-tuning v4 (2026-09-09) — 8B + Q&A clínico
 
-`build_dataset.py` **não** foi alterado. v1 (opus-mt) e v2 (MedQuAD EN cru) descartadas — ver Status.
-A v3 é montada na **célula 3** (ou por `scripts/gen_dataset_v3.py`, que gera o `docs/train_v3.jsonl`
-idêntico sem Colab):
-- **Núcleo limpo:** `data/processed/train.jsonl` **inteiro** (68 ex.: 12 protocolo + 56 FAQ), ~90%
-  citam `[PROT-NNN §x]`, PT-BR clínico.
-- **Expansão dos protocolos:** as 12 entradas `"Explique o protocolo ..."`, 4 fraseados cada (~48 ex.).
-- **Total 116**, fecho PT-BR rotacionado entre 4 fraseados.
-- **MedQuAD:** `N_MEDQUAD_EN = 0` por default. A célula 3 tem filtro `_medquad_ok` (rejeita listas
-  "these resources address / MedlinePlus / Gene Review" e respostas que começam repetindo a
-  pergunta — na fatia v2 isso descartaria 74/100). Só ligar depois que a v3 base passar, e mesmo
-  assim é fatia de risco.
-- **Ficam de fora:** opus-mt, PubMedQA, MedQuAD (default), exemplos de segurança (guardrails = grafo).
-- Diverge da tabela de `docs/finetuning.md` §2 (40/25/20/15) — reconciliar no relatório: a v3 é
-  ~59% FAQ+núcleo / ~41% expansão-protocolo, 0% MedQuAD, 0% segurança. Racional: guia §1 — o
-  fine-tune ensina comportamento (formato/citação/tom/parada), o RAG traz os fatos.
-- `data/processed/{train,val}.jsonl` gerados por `medassist build-dataset` (72 ex.: 68 treino / 4 val).
+v1 (opus-mt), v2 (MedQuAD EN cru) e v3 (116 ex. + 3B) descartadas — ver Status. A v4 é montada na
+**célula 3** (ou por `scripts/gen_dataset_v4.py`, que gera o `docs/train_v4.jsonl` idêntico sem Colab):
+- **Núcleo:** `data/processed/train.jsonl` **inteiro** (~142 ex.: 25 protocolo "Explique o
+  protocolo ..." + 125 FAQ de seção), 100% citam `[PROT-NNN §x]`, FAQs agora **completas**
+  (era truncado em 180 chars — `docs/desvios.md` §13).
+- **Q&A clínico:** `data/synthetic/qa_clinico.jsonl` (235 ex.) — perguntas de médico em linguagem
+  natural, respostas ancoradas nos 25 protocolos, **cada uma única** (nada de mesma resposta ×N).
+- **Expansão dos protocolos:** cada "Explique o protocolo ..." em **+2** fraseados (~48 ex.) —
+  a v3 usava 4 e repetia a mesma resposta longa, reforçando a memorização de forma.
+- **Total ~425**, fecho PT-BR rotacionado entre 5 fraseados.
+- **13 protocolos novos** (PROT-013..025) somados ao `PROTOCOLOS` de `generate_synthetic.py`;
+  `medassist build-dataset` e `generate_synthetic` regerados. RAG do grafo passa a indexar os 25.
+- **Ficam de fora:** MedQuAD, opus-mt, PubMedQA, exemplos de segurança (guardrails = grafo).
+- `data/processed/{train,val}.jsonl` gerados por `medassist build-dataset` (150 ex.: 142 treino / 8 val).
 
 ## Comandos úteis
 
@@ -194,14 +273,30 @@ palavra-chave documentados em §8.2 da especificação. `llm/ollama_provider.py`
   "pegou" de verdade, confirmar que o vhdx antigo em C: realmente sumiu depois do Apply & Restart).
   **Resolvido em 2026-09-08:** disco de imagem do Docker movido para um drive com espaço; daemon
   (Server 29.7.2) rodando estável, build+compose voltaram a funcionar.
+- **`model-init` (POST HTTP do blob) estoura a RAM da VM WSL2 com GGUF grande.** Host tem 16 GB
+  físicos → VM Docker Desktop = ~8 GB (default `min(50%, 8GB)`). O `model-init` lê o GGUF e faz
+  `POST /api/blobs`, bufferizando → `Error: ... cannot allocate memory` no 8B (4.9 GB). **Fix
+  aplicado:** `docker-compose.yml` monta `./models:/models:ro` **também no serviço `ollama`**, e o
+  `ollama create` roda DENTRO do container `ollama` (cópia em disco, mmap):
+  `docker exec hecate-assist-ollama-1 sh -c 'cp /Modelfile /root/Modelfile && cd /root && ollama
+  create medassist -f /root/Modelfile'` (o `-f /Modelfile` na raiz dá "no Modelfile found" nesta
+  versão do ollama 0.33.3 — precisa rodar de um diretório de trabalho gravável). O `model-init`
+  continua no compose e funciona p/ modelos pequenos; p/ o 8B, usar o `docker exec`.
+- **Volume `hecate-assist_app_data` mascara `/app/data`.** É um named volume populado no 1º `up` e
+  **não** atualizado por `--build`. Ao mudar `data/synthetic/` (protocolos, qa_clinico), o RAG do
+  container fica com a versão antiga. Recriar: `docker compose ... rm -sf app && docker volume rm
+  hecate-assist_app_data && docker compose ... up -d app` (o entrypoint refaz `seed-db`/`ingest`).
+  `ollama_models` fica intacto.
 - Todos os desvios de implementação (correções necessárias para o código rodar) estão documentados
   com justificativa em `docs/desvios.md` — ler antes de "corrigir" algo que já foi corrigido de propósito.
 
 ### Gotchas do Colab / fine-tuning (sessão 2026-09-09)
 
-- **v2/v3 não traduzem nada** — a célula de dataset não baixa opus-mt nem precisa de GPU; as gotchas
-  de tradução da v1 (`AutoModelForSeq2SeqLM`, exige GPU, batches fp16) não se aplicam mais. A célula 2
-  não instala `sacremoses`. Na v3 a célula de dataset nem baixa nada por default (`N_MEDQUAD_EN=0`).
+- **v2/v3/v4 não traduzem nada** — a célula de dataset não baixa opus-mt nem MedQuAD; as gotchas de
+  tradução da v1 (`AutoModelForSeq2SeqLM`, GPU, fp16) não se aplicam. A célula 2 não instala
+  `sacremoses`. Na v4 a célula 3 só lê `train_v4.jsonl` (ou reconstrói do `train.jsonl` + `qa_clinico.jsonl`).
+- **v4 usa base 8B** (`unsloth/Meta-Llama-3.1-8B-Instruct`). QLoRA 4-bit cabe em T4/L4; o merge 16-bit
+  do export consome ~o dobro de RAM do 3B (Colab Pro High-RAM recomendado). GGUF final ~4.9 GB.
 - **`pip install git+transformers` quebra o pin do `unsloth`** (`transformers<=5.5.0`). A célula 1
   do notebook não instala o transformers do git — o `unsloth` resolve a versão compatível.
 - **Esta versão do `SFTTrainer`/`unsloth` não aplica o chat template sozinho** — dá
@@ -216,6 +311,7 @@ palavra-chave documentados em §8.2 da especificação. `llm/ollama_provider.py`
   do treino, é retreinar (o notebook não tem mais célula de recuperação de adaptadores).
 - **Crash na célula de export = OOM de RAM de sistema** no merge 16-bit (Colab free ~12,7 GB), não
   disco nem VRAM. Resolvido com Colab Pro (High-RAM); a célula de export passa `maximum_memory_usage=0.6`.
-- **`save_pretrained_gguf(dir, ...)` grava em `dir + "_gguf/"`** com nome fixo
-  `llama-3.2-3b-instruct.Q4_K_M.gguf` (ignora o nome que você passou). A célula de export faz
-  `glob('/content/**/*.gguf')` e pega o maior arquivo, depois copia só ele (~2 GB) para o Drive.
+- **`save_pretrained_gguf(dir, ...)` grava em `dir + "_gguf/"`** com nome fixo derivado do modelo
+  (no 8B, algo como `llama-3.1-8b-instruct.Q4_K_M.gguf`; ignora o nome que você passou). A célula de
+  export faz `glob('/content/**/*.gguf')` e pega o maior arquivo, depois copia só ele (~4.9 GB no 8B)
+  para o Drive.

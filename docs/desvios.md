@@ -169,3 +169,16 @@ O padrão de nomes (§5.4) foi implementado com `\1 [NOME]` (mantendo o
 gatilho + espaço) em vez de `\1[NOME]` como no texto literal da tabela,
 para preservar a legibilidade ("paciente [NOME]" em vez de
 "paciente[NOME]"). Comportamento funcionalmente idêntico ao exigido.
+
+## 13. `data/generate_synthetic.py` — FAQs com texto integral da seção
+
+`_perguntas_faq` gerava a resposta como `f"Conforme {doc_id} §N, {texto[:180]}..."`,
+truncando a seção em 180 caracteres com corte no meio da palavra. Como o
+`faqs.jsonl` alimenta o dataset de fine-tuning (`build_dataset._exemplos_faqs`),
+isso colocava ~48/60 alvos de assistant terminando no meio de uma frase — um
+provável reforço da degeneração observada nas versões v1–v3 do fine-tune (modelo
+parando cedo / sem emitir EOS). Corrigido para usar o texto integral da seção.
+As FAQs deixam de ser trechos e passam a ser respostas completas; a estrutura do
+`faqs.jsonl` (5 por protocolo, campos `id`/`pergunta`/`resposta`/`doc_ref`) é a
+mesma. Regerado com `python -m medassist.data.generate_synthetic` (25 protocolos,
+125 FAQs).
