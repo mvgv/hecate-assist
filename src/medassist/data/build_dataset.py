@@ -1,14 +1,41 @@
 """CLI: medassist build-dataset - gera o dataset de fine-tuning em formato chat JSONL."""
 import json
 import random
+import re
 from pathlib import Path
 
 from medassist.assistant.prompts import SYSTEM_PROMPT
 from medassist.data.anonymize import anonimizar
-from medassist.rag.ingest import _parse_frontmatter
+from medassist.rag.ingest import _dividir_em_secoes, _parse_frontmatter
 
 _SEED = 42
 _SPLIT_TREINO = 0.95
+
+# Perguntas por secao do modelo de documento. O {assunto} vem do titulo do
+# template (ex.: "laudo de exame") e o numero da secao vira a citacao §N.
+_PERGUNTAS_TEMPLATE = {
+    "1": "Quando devo usar o modelo institucional de {assunto}?",
+    "2": "Qual a estrutura do modelo institucional de {assunto}?",
+    "3": "Me mostre um exemplo preenchido de {assunto}.",
+    "4": "Quais as regras de preenchimento do modelo de {assunto}?",
+}
+
+
+def _chat(pergunta: str, resposta: str) -> dict:
+    """Monta um exemplo no formato chat, anonimizando as duas pontas."""
+    pergunta, _ = anonimizar(pergunta)
+    resposta, _ = anonimizar(resposta)
+    return {
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": pergunta},
+            {"role": "assistant", "content": resposta},
+        ]
+    }
+
+
+def _corpo_sem_rodape(corpo: str) -> str:
+    return corpo.split("---\n*Documento sintético")[0].strip()
 
 
 def _exemplos_faqs(caminho_faqs: Path) -> list[dict]:
@@ -19,17 +46,7 @@ def _exemplos_faqs(caminho_faqs: Path) -> list[dict]:
         if not linha.strip():
             continue
         item = json.loads(linha)
-        pergunta, _ = anonimizar(item["pergunta"])
-        resposta, _ = anonimizar(item["resposta"])
-        exemplos.append(
-            {
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": pergunta},
-                    {"role": "assistant", "content": resposta},
-                ]
-            }
-        )
+        exemplos.append(_chat(item["pergunta"], item["resposta"]))
     return exemplos
 
 
@@ -40,28 +57,56 @@ def _exemplos_protocolos(diretorio: Path) -> list[dict]:
         doc_id = meta.get("doc_id", arquivo.stem)
         titulo = meta.get("titulo", "")
 
-        corpo_limpo = corpo.split("---\n*Documento sintético")[0].strip()
-        pergunta = f"Explique o protocolo {doc_id} - {titulo}."
-        resposta = f"{corpo_limpo}\n\n[{doc_id}]"
+        exemplos.append(
+            _chat(
+                f"Explique o protocolo {doc_id} - {titulo}.",
+                f"{_corpo_sem_rodape(corpo)}\n\n[{doc_id}]",
+            )
+        )
+    return exemplos
 
-        pergunta, _ = anonimizar(pergunta)
-        resposta, _ = anonimizar(resposta)
+
+def _exemplos_templates(diretorio: Path) -> list[dict]:
+    """Exemplos a partir dos modelos de laudo, receita e procedimento (TPL-NNN).
+
+    O enunciado da fase pede que o fine-tuning use tambem "modelos de laudos,
+    receitas e procedimentos internos" — esta e a fatia que cobre esse requisito.
+    Uma pergunta por secao (quando usar / estrutura / exemplo / regras) mais uma
+    do documento inteiro, todas citando [TPL-NNN §secao] como os protocolos.
+    """
+    exemplos = []
+    for arquivo in sorted(diretorio.glob("*.md")):
+        meta, corpo = _parse_frontmatter(arquivo.read_text(encoding="utf-8"))
+        doc_id = meta.get("doc_id", arquivo.stem)
+        titulo = meta.get("titulo", "")
+        assunto = re.sub(r"^Modelo Institucional de\s+", "", titulo).strip().lower()
+        corpo_limpo = _corpo_sem_rodape(corpo)
+
+        for titulo_secao, texto_secao in _dividir_em_secoes(corpo_limpo):
+            numero = titulo_secao.split(".", 1)[0].strip()
+            molde = _PERGUNTAS_TEMPLATE.get(numero)
+            if not molde or not texto_secao.strip():
+                continue
+            exemplos.append(
+                _chat(
+                    molde.format(assunto=assunto),
+                    f"Conforme [{doc_id} §{numero}], {texto_secao.strip()}",
+                )
+            )
 
         exemplos.append(
-            {
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": pergunta},
-                    {"role": "assistant", "content": resposta},
-                ]
-            }
+            _chat(f"Explique o modelo {doc_id} - {titulo}.", f"{corpo_limpo}\n\n[{doc_id}]")
         )
     return exemplos
 
 
 def build_dataset(out_dir: str = "data/processed/", base_dir: str = "data/synthetic") -> dict:
     base = Path(base_dir)
-    exemplos = _exemplos_faqs(base / "faqs.jsonl") + _exemplos_protocolos(base / "protocolos")
+    exemplos = (
+        _exemplos_faqs(base / "faqs.jsonl")
+        + _exemplos_protocolos(base / "protocolos")
+        + _exemplos_templates(base / "templates")
+    )
 
     rng = random.Random(_SEED)
     rng.shuffle(exemplos)

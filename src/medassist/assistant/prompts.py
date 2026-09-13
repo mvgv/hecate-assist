@@ -97,4 +97,8 @@ TERMOS_CLINICOS = [
     "analgesia", "dor aguda", "opioide", "morfina", "dipirona", "escala de dor",
     "trombose venosa", "tvp", "d-dímero", "d-dimero", "wells", "hemoglobina",
     "transfusão", "transfusao",
+    # TPL-001..003 — modelos institucionais de documento
+    "laudo", "receita", "receituário", "receituario", "prescrição", "prescricao",
+    "procedimento", "descrição de procedimento", "descricao de procedimento",
+    "prontuário", "prontuario", "alta hospitalar", "crm",
 ]

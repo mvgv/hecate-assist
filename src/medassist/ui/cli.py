@@ -27,7 +27,7 @@ def seed_db_cmd() -> None:
 
 @app.command("ingest")
 def ingest_cmd() -> None:
-    """Indexa os protocolos sinteticos no ChromaDB."""
+    """Indexa protocolos e modelos de documento (laudo/receita/procedimento) no ChromaDB."""
     from medassist.rag.ingest import ingest
 
     n = ingest()

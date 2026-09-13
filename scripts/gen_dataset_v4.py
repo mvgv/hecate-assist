@@ -135,7 +135,7 @@ def gerar(core_path: Path, qa_path: Path, out: Path) -> None:
     cit = sum(
         1
         for e in exemplos
-        if re.search(r"PROT-\d", e["messages"][2]["content"])
+        if re.search(r"(PROT|TPL)-\d", e["messages"][2]["content"])
         or "§" in e["messages"][2]["content"]
     )
     tam = [len(e["messages"][2]["content"]) for e in exemplos]

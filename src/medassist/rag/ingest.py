@@ -1,4 +1,4 @@
-"""CLI: medassist ingest - chunkeia os protocolos sinteticos e grava no ChromaDB."""
+"""CLI: medassist ingest - chunkeia protocolos e modelos de documento no ChromaDB."""
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,17 +77,27 @@ def _chunks_do_arquivo(caminho: Path) -> list[Chunk]:
     return chunks
 
 
-def ingest(protocolos_dir: str | None = None) -> int:
-    """Le os protocolos, embute e grava (idempotente) na collection Chroma.
+def ingest(protocolos_dir: str | None = None, templates_dir: str | None = None) -> int:
+    """Le protocolos e modelos de documento, embute e grava na collection Chroma.
 
+    Alem dos protocolos clinicos (PROT-NNN), indexa os modelos institucionais de
+    laudo, receita e descricao de procedimento (TPL-NNN) — o assistente precisa
+    conseguir citar a estrutura desses documentos quando o medico pergunta como
+    preencher um laudo ou o que a receita de alta exige.
+
+    E idempotente: recria a collection do zero a cada execucao.
     Retorna a quantidade de chunks gravados.
     """
     settings = get_settings()
-    diretorio = Path(protocolos_dir or "data/synthetic/protocolos")
+    diretorios = [
+        Path(protocolos_dir or "data/synthetic/protocolos"),
+        Path(templates_dir or "data/synthetic/templates"),
+    ]
 
     todos_chunks: list[Chunk] = []
-    for arquivo in sorted(diretorio.glob("*.md")):
-        todos_chunks.extend(_chunks_do_arquivo(arquivo))
+    for diretorio in diretorios:
+        for arquivo in sorted(diretorio.glob("*.md")):
+            todos_chunks.extend(_chunks_do_arquivo(arquivo))
 
     Path(settings.chroma_dir).mkdir(parents=True, exist_ok=True)
     client = chromadb.PersistentClient(path=settings.chroma_dir)
