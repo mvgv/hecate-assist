@@ -38,6 +38,12 @@ COPY deploy/entrypoint.sh deploy/entrypoint.sh
 # Pre-baixa o modelo de embeddings no build para o container subir offline/rapido.
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('${MEDASSIST_EMBEDDING_MODEL}')"
 
+# Com o modelo ja no cache da imagem, o sentence-transformers ainda batia no HF
+# Hub a cada carga para revalidar os arquivos — o que custava ~20s de retry
+# quando a rede tem proxy/MITM (SSL: CERTIFICATE_VERIFY_FAILED). Depois do
+# pre-download a imagem nao precisa mais da rede: modo offline.
+ENV HF_HUB_OFFLINE=1
+
 RUN chmod +x deploy/entrypoint.sh \
     && mkdir -p data logs \
     && chown -R medassist:medassist /app

@@ -1,6 +1,6 @@
 # Desvios da especificação
 
-Conforme instruído em [`../ESPECIFICACAO.md`](../ESPECIFICACAO.md) ("se algo
+Conforme instruído em [`especificacao.md`](especificacao.md) ("se algo
 for impossível, implemente o mais próximo possível e registre o desvio
 aqui"). Nenhum desvio altera as decisões de arquitetura do documento —
 todos são correções pontuais necessárias para o código rodar, ou
@@ -252,3 +252,89 @@ de texto plano em nível WARNING para avisos/erros operacionais; libs barulhenta
 a pedir `structlog.get_logger("medassist.audit")`. Assinaturas de `get_logger` e
 `@auditado` não mudam. Validado: um `ask` completo gera exatamente 10 linhas no
 jsonl (5 `no_iniciado` + 5 `no_concluido`), zero ruído.
+
+## 17. Modelos de laudo/receita/procedimento viraram documentos citáveis (TPL-NNN)
+
+O enunciado da fase exige que o fine-tuning use três fontes: protocolos, FAQs de
+médicos e **"modelos de laudos, receitas e procedimentos internos"**. As duas
+primeiras estavam cobertas; a terceira existia só como arquivo morto —
+`data/synthetic/templates/{laudo,receita,procedimento}.md` era um esqueleto de
+~10 linhas com `{{placeholders}}`, sem frontmatter, que **nenhum** código lia:
+`build_dataset` somava apenas FAQs + protocolos e `ingest` só varria
+`protocolos/*.md`.
+
+Corrigido: os três templates passaram a ser documentos de primeira classe, com a
+mesma anatomia dos protocolos — frontmatter (`doc_id: TPL-001..003`, `titulo`,
+`tipo: template`) e quatro seções numeradas (`1. Quando usar`,
+`2. Estrutura do documento`, `3. Exemplo preenchido`, `4. Regras de preenchimento`).
+Com isso entram nos dois caminhos sem código especial:
+
+- **RAG:** `ingest()` ganhou um segundo diretório (`templates_dir`) e indexa os 12
+  chunks novos na mesma collection (100 → 112 chunks). O médico pergunta "qual a
+  estrutura da receita de alta?" e o retriever devolve `TPL-002 §2`.
+- **Fine-tuning:** `_exemplos_templates()` gera uma pergunta por seção mais uma do
+  documento inteiro (15 exemplos), citando `[TPL-NNN §secao]` como os protocolos.
+  `train.jsonl` foi de 150 → 165 exemplos e `docs/train_v4.jsonl` de 425 → 439.
+
+Detalhe de implementação: o esqueleto dentro da seção 2 é indentado em 4 espaços.
+Sem isso, as linhas `## Descrição` / `## Conclusão` do modelo seriam lidas como
+seções pelo `_SECAO_RE` do chunker (`^##\s+`) e estilhaçariam o documento.
+
+**Consequência para o GGUF entregue:** o modelo v4 foi treinado nos 425 exemplos
+antigos, sem a fatia TPL. Ver §18 — na prática ele cita `PROT-001` ao responder
+sobre a receita, e o guardrail (corretamente) recusa. Responder bem a perguntas
+sobre laudo/receita/procedimento exige retreinar com o dataset de 439.
+
+## 18. `fonte_alucinada` exigia colchete e nunca disparava
+
+`_RE_FONTE` era `\[PROT-\d+` — a citação **tinha** que vir entre colchetes. Só que
+o dataset ensina majoritariamente a forma sem colchete: em `train.jsonl` são
+**93** ocorrências de `Conforme PROT-NNN §x` contra **24** de `[PROT-NNN]`, porque
+as FAQs (a fatia maior) usam o prefixo `Conforme`. O modelo fine-tuned gera
+exatamente assim. Resultado: a checagem de fonte alucinada — que é o guardrail de
+explainability, o que garante que a resposta aponta para um documento realmente
+recuperado — estava **morta em produção**.
+
+Descoberto empiricamente ao testar uma pergunta sobre `TPL-002`: o RAG trouxe o
+template certo, o conteúdo da resposta veio correto, mas o modelo escreveu
+"Conforme PROT-001 §1" (alucinando o doc_id, porque nunca viu `TPL-` no treino) e
+o guardrail aprovou.
+
+Corrigido: `_RE_FONTE = \[?((?:PROT|TPL)-\d+)` — colchete opcional, grupo de
+captura em vez de fatiar a string, e comparação normalizada em maiúsculas. A mesma
+pergunta agora regenera 2× e cai em `resposta_segura` com
+`violação de segurança: fonte_alucinada`, que é o comportamento correto para um
+modelo que não sabe citar aquele documento.
+
+## 19. Bloco "Fontes" casava só o `doc_id` e anunciava a seção errada
+
+`formatar_resposta` montava `docs_por_id = {d["doc_id"]: d for d in docs}`. Como o
+top-k quase sempre traz **vários chunks do mesmo protocolo**, o dict colapsava
+todos e ficava com o último. A resposta dizia "Conforme PROT-001 §2" e o rodapé
+listava "PROT-001 §4" — a citação visível ao médico apontava para a seção errada.
+Observado em produção nas duas primeiras perguntas testadas (sepse: corpo §2 /
+fontes §4; hipercalemia: corpo §4 / fontes §2).
+
+Corrigido: `_RE_DOC_CITADO` passou a capturar `(doc_id, secao)` —
+`((?:PROT|TPL)-\d+)(?:\s*§\s*(\d+))?` — e o novo `_docs_citados()` resolve a
+citação pelo par `(doc_id, número da seção)`, caindo de volta para todos os chunks
+do documento quando a citação vem sem `§N`. A ordem de aparição no texto é
+preservada (`dict.fromkeys`). Revalidado no Docker: sepse §2→§2, hipercalemia
+§4→§4, crise hipertensiva §4→§4.
+
+## 20. Documentos de especificação movidos para dentro do repositório
+
+`ESPECIFICACAO.md`, `PLANO.md`, `docs/grafo_langgraph.md` e `docs/finetuning.md`
+viviam um nível acima do repo, numa pasta **não versionada**. O `README.md`
+apontava para eles com seis links `../…` que quebravam para qualquer pessoa que
+clonasse — inclusive o "Diagrama do fluxo LangChain", que é entregável nominal da
+fase. Copiados para `docs/` (como `especificacao.md` e `plano.md`) e todos os
+links reescritos, nos dois sentidos.
+
+## 21. `HF_HUB_OFFLINE=1` na imagem
+
+O `Dockerfile` já pré-baixa o modelo de embedding no build, mas o
+`sentence-transformers` ainda batia no HF Hub a cada carga para revalidar os
+arquivos. Em rede com proxy/MITM isso vira `SSL: CERTIFICATE_VERIFY_FAILED` +
+5 retries — ~20 s por cold start, medidos. Como o cache já está na imagem, a
+variável é setada logo após o pré-download (antes dele quebraria o build).
