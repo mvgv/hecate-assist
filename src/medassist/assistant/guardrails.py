@@ -7,7 +7,15 @@ _RE_PRESCRICAO = re.compile(
 _RE_VALIDACAO = re.compile(r"validação|validacao|médico responsável|medico responsavel|avaliar", re.IGNORECASE)
 _RE_DIAGNOSTICO = re.compile(r"\bo paciente (tem|está com|esta com|é portador de|e portador de)\b", re.IGNORECASE)
 _RE_HEDGE = re.compile(r"compatível|compativel|sugestivo|possível|possivel|provável|provavel", re.IGNORECASE)
-_RE_FONTE = re.compile(r"\[PROT-\d+", re.IGNORECASE)
+# Protocolos clinicos (PROT-NNN) e modelos institucionais de documento
+# (TPL-NNN, laudo/receita/procedimento) — os dois sao citaveis e os dois
+# precisam passar pela checagem de fonte alucinada.
+#
+# O colchete e OPCIONAL de proposito: o dataset ensina as duas formas, mas a
+# dominante e sem colchete ("Conforme PROT-001 §2, ...") — 93 ocorrencias
+# contra 24 com colchete. Enquanto o regex exigia "[", o `fonte_alucinada`
+# nunca disparava na forma que o modelo realmente gera.
+_RE_FONTE = re.compile(r"\[?((?:PROT|TPL)-\d+)", re.IGNORECASE)
 _RE_SUGESTAO_CONDUTA = re.compile(r"\b(sugere-se|recomenda-se|conduta|iniciar|tratamento)\b", re.IGNORECASE)
 
 
@@ -40,11 +48,9 @@ def _camada1(state: dict) -> tuple[str | None, list[str]]:
             violacoes.append("diagnostico_definitivo")
             break
 
-    docs_validos = {d["doc_id"] for d in state.get("docs", [])}
+    docs_validos = {d["doc_id"].upper() for d in state.get("docs", [])}
     for match in _RE_FONTE.finditer(resposta):
-        trecho = resposta[match.start(): match.start() + 20]
-        doc_citado = trecho[1:].split()[0].rstrip("§,.;")
-        if doc_citado not in docs_validos:
+        if match.group(1).upper() not in docs_validos:
             violacoes.append("fonte_alucinada")
             break
 

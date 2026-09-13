@@ -20,7 +20,11 @@ from medassist.llm.base import get_llm
 from medassist.logging_setup import auditado
 from medassist.rag.retriever import buscar
 
-_RE_DOC_CITADO = re.compile(r"PROT-\d+")
+# Captura o doc_id citado e, quando presente, o numero da secao: "PROT-001 §2".
+# A secao importa — sem ela o bloco "Fontes" nao consegue distinguir qual chunk
+# do mesmo protocolo foi usado e acaba mostrando um §N diferente do citado no
+# corpo da resposta.
+_RE_DOC_CITADO = re.compile(r"((?:PROT|TPL)-\d+)(?:\s*§\s*(\d+))?")
 
 # Meta-perguntas ("qual o protocolo de X?", "existe conduta para X?") carregam
 # ruido que dilui o embedding da consulta e faz o RAG errar o protocolo. Tira o
@@ -200,6 +204,33 @@ def emitir_alertas(state: dict) -> dict:
     return {"alertas_emitidos": alertas}
 
 
+def _numero_secao(doc: dict) -> str:
+    """Extrai o numero da secao: `4. Criterios de alerta` -> `4`."""
+    return str(doc.get("secao", "")).split(".", 1)[0].strip()
+
+
+def _docs_citados(resposta: str, docs: list[dict]) -> list[dict]:
+    """Resolve as citacoes do texto para os chunks efetivamente recuperados.
+
+    Quando a citacao traz a secao ("PROT-001 §2"), casa pelo par (doc_id, secao)
+    — varios chunks do mesmo protocolo costumam vir no top-k, e casar so pelo
+    doc_id fazia o bloco "Fontes" anunciar uma secao diferente da que o modelo
+    usou. Citacao sem §N cai de volta para todos os chunks daquele documento.
+    """
+    por_chave = {(d["doc_id"], _numero_secao(d)): d for d in docs}
+    por_id: dict[str, list[dict]] = {}
+    for d in docs:
+        por_id.setdefault(d["doc_id"], []).append(d)
+
+    relevantes: list[dict] = []
+    for doc_id, secao in dict.fromkeys(_RE_DOC_CITADO.findall(resposta)):
+        casados = [por_chave[(doc_id, secao)]] if (doc_id, secao) in por_chave else por_id.get(doc_id, [])
+        for d in casados:
+            if d not in relevantes:
+                relevantes.append(d)
+    return relevantes
+
+
 @auditado
 def formatar_resposta(state: dict) -> dict:
     resposta = state.get("resposta_bruta", "")
@@ -213,14 +244,12 @@ def formatar_resposta(state: dict) -> dict:
         )
 
     docs = state.get("docs") or []
-    docs_por_id = {d["doc_id"]: d for d in docs}
-    citados = set(_RE_DOC_CITADO.findall(resposta))
     fontes: list[str] = []
 
     if state.get("sem_fonte"):
         fontes_txt = "Sem fonte interna — conhecimento geral do modelo, validar."
     else:
-        relevantes = [docs_por_id[d] for d in citados if d in docs_por_id] or docs
+        relevantes = _docs_citados(resposta, docs) or docs
         for d in relevantes:
             fontes.append(f"{d['doc_id']} §{d['secao']} — {d['titulo']}")
         fontes_txt = (

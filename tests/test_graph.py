@@ -120,3 +120,28 @@ def test_llm_indisponivel_na_triagem_ambigua_cai_em_resposta_segura(grafo, monke
     assert "triagem" in r["erro"]
     assert "Motivo" in r["resposta_final"]
     assert "especializado" not in r["resposta_final"]
+
+
+def test_fontes_citam_a_secao_usada_na_resposta():
+    """Varios chunks do mesmo protocolo no top-k nao podem trocar o §N da fonte."""
+    from medassist.assistant.nodes import formatar_resposta
+
+    docs = [
+        {"doc_id": "PROT-001", "titulo": "Sepse", "secao": "2. Conduta inicial", "conteudo": "a"},
+        {"doc_id": "PROT-001", "titulo": "Sepse", "secao": "4. Criterios de alerta", "conteudo": "b"},
+    ]
+    resultado = formatar_resposta(
+        {"resposta_bruta": "Conforme PROT-001 §2, aplicar o pacote da primeira hora.", "docs": docs}
+    )
+    assert resultado["fontes"] == ["PROT-001 §2. Conduta inicial — Sepse"]
+
+
+def test_fontes_sem_secao_citada_listam_o_documento_inteiro():
+    from medassist.assistant.nodes import formatar_resposta
+
+    docs = [
+        {"doc_id": "PROT-001", "titulo": "Sepse", "secao": "2. Conduta inicial", "conteudo": "a"},
+        {"doc_id": "PROT-002", "titulo": "Dor toracica", "secao": "1. Definicao", "conteudo": "b"},
+    ]
+    resultado = formatar_resposta({"resposta_bruta": "Ver [PROT-001].", "docs": docs})
+    assert resultado["fontes"] == ["PROT-001 §2. Conduta inicial — Sepse"]
