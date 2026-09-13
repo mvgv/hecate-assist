@@ -131,8 +131,14 @@ def avaliar(val_path: str, modelos: list[str]) -> dict:
         "`val.jsonl` não usam a citação em colchetes, então o score pune quem cita. "
         "E identificar o protocolo certo sem contexto é tarefa do RAG, não do "
         "fine-tune (o modelo alucina o número quando gera sem os documentos).\n"
-        "- ROUGE-L (proximidade textual da referência) daria um sinal melhor; "
-        "instalar `rouge-score` e rodar de novo para tê-lo.\n"
+    )
+    rel.append(
+        "- **`rougeL`** mede a proximidade textual com a resposta de referência — "
+        "é o sinal lexical de que o modelo aprendeu o conteúdo dos protocolos, "
+        "e não só o formato.\n"
+        if rouge_fn
+        else "- ROUGE-L (proximidade textual da referência) daria um sinal melhor; "
+        "instalar `rouge-score` (extra `dev`) e rodar de novo para tê-lo.\n"
     )
     rel.append("\n## Detalhe por exemplo\n")
     for i, (pergunta, _) in enumerate(pares):

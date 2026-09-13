@@ -1,8 +1,9 @@
 # CLAUDE.md
 
 Guia de contexto para retomar o trabalho neste repositório. Para a especificação completa do produto, ver
-[`../ESPECIFICACAO.md`](../ESPECIFICACAO.md), [`../PLANO.md`](../PLANO.md) e [`../docs/grafo_langgraph.md`](../docs/grafo_langgraph.md)
-(esses três arquivos vivem um nível acima, em `iadt-langgraph/`, não dentro deste repo).
+[`docs/especificacao.md`](docs/especificacao.md), [`docs/plano.md`](docs/plano.md) e [`docs/grafo_langgraph.md`](docs/grafo_langgraph.md)
+(desde 2026-09-13 esses arquivos vivem dentro do repo, em `docs/` — antes ficavam um nível acima,
+fora do controle de versão, e os links quebravam para quem clonasse).
 
 ## O que é este projeto
 
@@ -135,6 +136,62 @@ docker exec hecate-assist-app-1 medassist ask "qual o protocolo de sepse?"
 `pytest tests/test_graph.py` — 10/10 passando, incluindo a regressão
 `test_llm_indisponivel_na_triagem_ambigua_cai_em_resposta_segura`.
 
+### Auditoria contra o enunciado + fechamento de lacunas (2026-09-13)
+
+Releitura do PDF do Tech Challenge e auditoria do que está entregue. Stack completa rodada de
+ponta a ponta na GPU antes e depois das mudanças (sepse, hipercalemia, crise hipertensiva,
+caso de paciente com `interrupt()` + `resume` + alertas, fora de escopo, trilha de auditoria
+em disco). **50 testes passando, `ruff` limpo.**
+
+**Lacuna 1 — a terceira fonte de fine-tuning do enunciado não existia. FECHADA.**
+O enunciado pede protocolos + FAQs + **"modelos de laudos, receitas e procedimentos internos"**.
+Os templates existiam em `data/synthetic/templates/` mas eram **arquivo morto**: `grep -c laudo`
+dava 0 em `train.jsonl`/`train_v4.jsonl`/`qa_clinico.jsonl`, e `ingest` só varria `protocolos/*.md`.
+Viraram documentos de primeira classe `TPL-001..003` com frontmatter e 4 seções numeradas →
+entram no RAG (100 → **112 chunks**) e no dataset (`train.jsonl` 150 → **165**,
+`docs/train_v4.jsonl` 425 → **439**). Ver `docs/desvios.md` §17.
+
+**Lacuna 2 — docs de spec fora do repositório. FECHADA.** `ESPECIFICACAO.md`, `PLANO.md`,
+`grafo_langgraph.md` e `finetuning.md` viviam um nível acima, em pasta **não versionada**; o
+README tinha 6 links `../…` quebrados para quem clonasse, incluindo o diagrama do fluxo, que é
+entregável nominal. Copiados para `docs/` (`especificacao.md`, `plano.md`) e links reescritos
+nos dois sentidos. `docs/desvios.md` §20.
+
+**Bug encontrado durante a validação: `fonte_alucinada` estava morto.** `_RE_FONTE` exigia
+colchete (`\[PROT-\d+`), mas o dataset ensina majoritariamente a forma **sem** colchete
+(93 × `Conforme PROT-NNN §x` contra 24 × `[PROT-NNN]` no `train.jsonl`) — que é como o modelo
+gera. O guardrail de explainability nunca disparava em produção. Descoberto ao testar uma
+pergunta de template: RAG trouxe `TPL-002` certo, o modelo respondeu o conteúdo certo mas
+citou "Conforme PROT-001 §1", e passou. Corrigido (colchete opcional + grupo de captura);
+a mesma pergunta agora regenera 2× e cai em `resposta_segura`. `docs/desvios.md` §18.
+
+**Bug encontrado: bloco "Fontes" anunciava a seção errada.** `formatar_resposta` casava só pelo
+`doc_id`, e como o top-k traz vários chunks do mesmo protocolo, o dict colapsava tudo no último.
+Corpo dizia §2 e o rodapé listava §4 (observado em sepse e hipercalemia). Agora `_docs_citados()`
+casa pelo par `(doc_id, §N)`. Revalidado: sepse §2→§2, hipercalemia §4→§4, crise hipertensiva
+§4→§4. `docs/desvios.md` §19.
+
+**`HF_HUB_OFFLINE=1`** na imagem — o cold start perdia ~20 s em retry de SSL batendo no HF Hub
+mesmo com o modelo já no cache do build. `docs/desvios.md` §21.
+
+**PRECISA RETREINAR? Sim, se quiser responder sobre laudo/receita/procedimento.** O GGUF v4 que
+está no Ollama foi treinado nos 425 exemplos antigos, sem a fatia TPL. Testado no Docker GPU: o
+RAG recupera `TPL-002 §2` corretamente e o conteúdo da resposta sai certo, mas o modelo **cita
+`PROT-001`** — ele nunca viu o prefixo `TPL-` e cai no padrão memorizado. Com o guardrail
+consertado isso vira `resposta_segura` (correto, porém inútil para o médico). As perguntas
+clínicas (PROT) continuam 100% OK. Para fechar: subir `docs/train_v4.jsonl` (439 ex.) para o
+Drive e rodar o notebook v4 de novo — nada mais mudou no pipeline.
+
+**O que continua pendente (decisão do usuário: "relatório e vídeo ficam pro final"):**
+1. `docs/relatorio_tecnico.md` — ainda 100% esqueleto, todas as seções em checkbox vazio. É
+   entregável obrigatório ("relatório técnico detalhado" com fine-tuning, descrição do
+   assistente, diagrama do fluxo e avaliação). O conteúdo já existe espalhado entre este
+   arquivo, `docs/desvios.md` e `docs/avaliacao.md` — é trabalho de redação.
+2. Vídeo ≤15 min — roteiro em `docs/plano.md`; os comandos validados nesta sessão cobrem os
+   4 tópicos pedidos (treino, fluxo automatizado, pergunta contextualizada, logs/validação).
+3. Retreino v5 com os 439 exemplos (ver acima) — opcional, mas é o que fecha o requisito de
+   laudo/receita/procedimento de ponta a ponta.
+
 ### Pendências — afinar a v4 e fechar o Nível 2
 
 **Onde paramos (2026-09-09, noite):** v4 8B **treinada, servida na GPU e testada no grafo**
@@ -213,11 +270,21 @@ real: `--modelos medassist llama3.1:8b`, um passe completo por modelo (evita thr
 `doc_ids` (sobreposição de citações `[PROT-NNN]` com a referência), `formato` (cita + encerra com
 validação) e `rougeL` (se `rouge-score` instalado — adicionado ao extra `dev`). Rodado no
 container (`ollama pull llama3.1:8b` = base; `docker cp` do `val.jsonl` — gitignored). Resultado
-em `docs/avaliacao.md`: **formato `medassist` 1.000 vs base 0.125** (o fine-tune aprendeu o
-estilo da casa — cita e recomenda validação); `doc_ids` 0.375 vs 0.125 (ruidoso: as referências
-do `val.jsonl` nem sempre citam em colchetes, e acertar o nº do protocolo sem RAG é tarefa do
-retrieval). `rouge-score` não estava no container → métrica ROUGE-L pendente (instalar e rodar
-de novo para o sinal lexical).
+em `docs/avaliacao.md`. **Reexecutada em 2026-09-13 com ROUGE-L** (o `val.jsonl` mudou de 8
+para 9 exemplos quando os templates entraram no dataset, então a rodada anterior não valia mais):
+
+| modelo | rougeL | doc_ids | formato |
+|---|---|---|---|
+| `medassist` | **0.239** | 0.111 | **1.000** |
+| `llama3.1:8b` (base) | 0.108 | 0.222 | 0.111 |
+
+`formato` 9/9 vs 1/9 (o fine-tune aprendeu o estilo da casa — cita e recomenda validação) e
+`rougeL` 2,2× o base (sinal lexical: aprendeu o conteúdo, não só a forma). `doc_ids` continua
+ruidoso e agora favorece o base — as referências do `val.jsonl` nem sempre citam em colchetes,
+e acertar o nº do protocolo sem RAG é tarefa do retrieval, não do fine-tune.
+`rouge-score` **não está na imagem** (é extra `dev`, não entra no runtime): para reproduzir,
+`docker exec -u root hecate-assist-app-1 pip install --trusted-host pypi.org --trusted-host
+files.pythonhosted.org rouge-score` e `docker cp data/processed/val.jsonl` antes de rodar.
 
 **Já feito nesta sessão:** `TERMOS_CLINICOS` ampliado p/ os 25 protocolos (recusas falsas de
 hipercalemia/DPOC/HDA/TVP resolvidas). 39 testes passando, `ruff` limpo. Stack de GPU no ar
@@ -257,18 +324,23 @@ ollama model-init app` → `ollama create` roda no `model-init`.
 
 v1 (opus-mt), v2 (MedQuAD EN cru) e v3 (116 ex. + 3B) descartadas — ver Status. A v4 é montada na
 **célula 3** (ou por `scripts/gen_dataset_v4.py`, que gera o `docs/train_v4.jsonl` idêntico sem Colab):
-- **Núcleo:** `data/processed/train.jsonl` **inteiro** (~142 ex.: 25 protocolo "Explique o
-  protocolo ..." + 125 FAQ de seção), 100% citam `[PROT-NNN §x]`, FAQs agora **completas**
-  (era truncado em 180 chars — `docs/desvios.md` §13).
+- **Núcleo:** `data/processed/train.jsonl` **inteiro** (156 ex.: 25 protocolo "Explique o
+  protocolo ..." + 125 FAQ de seção + 15 de modelo de documento), 100% citam
+  `[PROT-NNN §x]` ou `[TPL-NNN §x]`, FAQs **completas** (era truncado em 180 chars —
+  `docs/desvios.md` §13).
 - **Q&A clínico:** `data/synthetic/qa_clinico.jsonl` (235 ex.) — perguntas de médico em linguagem
   natural, respostas ancoradas nos 25 protocolos, **cada uma única** (nada de mesma resposta ×N).
 - **Expansão dos protocolos:** cada "Explique o protocolo ..." em **+2** fraseados (~48 ex.) —
   a v3 usava 4 e repetia a mesma resposta longa, reforçando a memorização de forma.
-- **Total ~425**, fecho PT-BR rotacionado entre 5 fraseados.
+- **Modelos de documento:** `data/synthetic/templates/` (TPL-001 laudo, TPL-002 receita,
+  TPL-003 descrição de procedimento) — a terceira fonte que o enunciado exige, ausente até
+  2026-09-13 (`docs/desvios.md` §17). Entram pelo núcleo.
+- **Total 439**, fecho PT-BR rotacionado entre 5 fraseados. **O GGUF servido hoje foi treinado
+  nos 425 antigos** — sem a fatia TPL; ver a seção de auditoria de 2026-09-13.
 - **13 protocolos novos** (PROT-013..025) somados ao `PROTOCOLOS` de `generate_synthetic.py`;
   `medassist build-dataset` e `generate_synthetic` regerados. RAG do grafo passa a indexar os 25.
 - **Ficam de fora:** MedQuAD, opus-mt, PubMedQA, exemplos de segurança (guardrails = grafo).
-- `data/processed/{train,val}.jsonl` gerados por `medassist build-dataset` (150 ex.: 142 treino / 8 val).
+- `data/processed/{train,val}.jsonl` gerados por `medassist build-dataset` (165 ex.: 156 treino / 9 val).
 
 ## Comandos úteis
 

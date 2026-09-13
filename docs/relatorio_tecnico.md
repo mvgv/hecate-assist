@@ -1,53 +1,18 @@
 # Relatório Técnico — MedAssist (Tech Challenge Fase 3)
 
-> Esqueleto a ser preenchido após a execução do fine-tuning (Colab) e da
-> avaliação (`python -m medassist.finetune.evaluate`). Ver
-> [`../ESPECIFICACAO.md`](../ESPECIFICACAO.md) e [`../PLANO.md`](../PLANO.md)
-> para o contexto completo do projeto.
+O relatório técnico vive no **[README do repositório](../README.md#relatório-técnico)**,
+para ficar junto das instruções de uso e não divergir delas.
 
-## 1. Visão geral
+| Seção | Conteúdo |
+|---|---|
+| [§A — Decisões de engenharia de software](../README.md#a-decisões-de-engenharia-de-software) | Monolito, LangGraph e por que não uma chain, provider `Protocol` com fake determinístico, os dois modelos do grafo, guardrails determinísticos, auditoria, anonimização, Compose |
+| [§B — Decisões de modelo](../README.md#b-decisões-de-modelo) | As quatro versões de fine-tuning e o diagnóstico de cada falha, hiperparâmetros QLoRA, composição do dataset, quantização/serving, escolha do embedding do RAG, reformulação de consulta, chunking |
+| [§C — Avaliação](../README.md#c-avaliação) | Metodologia, resultado sem RAG (pesos), resultado com RAG (produção), limitações |
+| [§D — Conclusão](../README.md#d-conclusão-fine-tuned-vs-modelo-base) | Comparação fine-tuned vs. modelo base e a divisão de responsabilidades entre fine-tuning, RAG e grafo |
 
-- [ ] Objetivo do assistente e problema que resolve
-- [ ] Resumo da arquitetura (monolito + LangGraph + RAG + SQLite + Ollama)
-- [ ] Escopo e limites de atuação (nunca prescreve, sempre exige validação humana)
+Documentos de apoio:
 
-## 2. Dados
-
-- [ ] Fontes: MedQuAD (externo, opcional) + protocolos/FAQs sintéticos (`data/synthetic/`)
-- [ ] Processo de geração dos dados sintéticos (`generate_synthetic.py`)
-- [ ] Anonimização: exemplos antes/depois (`anonymize.py`)
-- [ ] Estatísticas do dataset de fine-tuning (saída de `medassist build-dataset`)
-
-## 3. Fine-tuning
-
-- [ ] Modelo base escolhido e justificativa
-- [ ] Hiperparâmetros (QLoRA: r, alpha, lr, épocas) — ver `finetune/train.py`
-- [ ] Curvas de loss/perplexidade (capturas do notebook Colab)
-- [ ] Ambiente de treino (GPU, tempo de treino)
-
-## 4. Arquitetura do assistente (LangChain + LangGraph)
-
-- [ ] Diagrama do grafo (gerar com `grafo.get_graph().draw_mermaid()` para
-      não desatualizar — ver [`../docs/grafo_langgraph.md`](grafo_langgraph.md))
-- [ ] Descrição nó a nó
-- [ ] Guardrails: camadas de validação e exemplos de bloqueio/regeneração
-- [ ] Human-in-the-loop: quando e por quê o grafo interrompe
-- [ ] Logging/auditoria: exemplo de trilha completa de uma conversa
-
-## 5. Avaliação
-
-- [ ] Métricas base vs. fine-tuned (`docs/avaliacao.md`, gerado por `finetune/evaluate.py`)
-- [ ] Exemplos qualitativos (pergunta → resposta base vs. tuned)
-- [ ] Limitações observadas
-
-## 6. Deploy
-
-- [ ] Topologia do Docker Compose e decisões de infraestrutura (ver `../PLANO.md §5`)
-- [ ] Orçamento de RAM observado na VPS
-- [ ] Checklist de smoke test pós-deploy
-
-## 7. Conclusões e trabalhos futuros
-
-- [ ] Principais aprendizados
-- [ ] O que faria diferente
-- [ ] Próximos passos (ex.: dataset maior, modelo maior, mais protocolos)
+- [`avaliacao.md`](avaliacao.md) — saída bruta de `medassist.finetune.evaluate` (tabela por exemplo).
+- [`desvios.md`](desvios.md) — todo desvio da especificação, com justificativa.
+- [`grafo_langgraph.md`](grafo_langgraph.md) — diagrama e especificação nó a nó do fluxo.
+- [`finetuning.md`](finetuning.md) — guia do pipeline de treino.
