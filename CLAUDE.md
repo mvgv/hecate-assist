@@ -290,21 +290,29 @@ files.pythonhosted.org rouge-score` e `docker cp data/processed/val.jsonl` antes
 hipercalemia/DPOC/HDA/TVP resolvidas). 39 testes passando, `ruff` limpo. Stack de GPU no ar
 (`medassist:latest` 8B, `ollama ps` = 100% GPU).
 
-**Passo 1 — preparar o Drive.** Subir para `MyDrive/medassist/`:
-- `docs/train_v4.jsonl` → **`train_v4.jsonl`** (é o dataset pronto; a célula 3 com `REBUILD=False` só carrega)
+**Passo 1 — preparar o Drive.** Subir para `MyDrive/medassist/`, **SUBSTITUINDO** os arquivos
+que já estiverem lá (o Drive cria `arquivo (1).jsonl` em vez de substituir se você não mandar
+substituir — e aí o notebook treina no dataset antigo):
+- `docs/train_v4.jsonl` → **`train_v4.jsonl`** — 439 exemplos, com a fatia TPL. **O que estiver
+  no Drive hoje é a versão de 425, sem os modelos de documento.** A célula 3 tem uma guarda que
+  aborta se o arquivo carregado não tiver nenhum exemplo `TPL-`.
+- `data/processed/val.jsonl` → `val.jsonl` (`eval_dataset`) — **também mudou** (8 → 9 exemplos).
 - `data/synthetic/qa_clinico.jsonl` → `qa_clinico.jsonl` (só usado se `REBUILD=True`)
 - `data/processed/train.jsonl` → `train.jsonl` (núcleo, fallback se não houver `train_v4.jsonl`)
-- `data/processed/val.jsonl` → `val.jsonl` (`eval_dataset`)
 
-**Passo 2 — rodar o notebook v4** (`notebooks/02_finetune_colab.ipynb`), runtime GPU (Colab Pro):
+**Passo 2 — rodar o notebook** (`notebooks/02_finetune_colab.ipynb`), runtime GPU (Colab Pro):
 1. Células 1-2 (install, mount).
-2. Célula 3: deve imprimir `cache -> 425 exemplos de .../train_v4.jsonl`. Se imprimir
-   "nucleo / Q&A clinico / expansao prot" é porque não achou o `train_v4.jsonl` no Drive.
+2. Célula 3: deve imprimir `cache -> 439 exemplos ...` seguido de
+   `modelos de documento (TPL-NNN): 14 exemplos`. Se levantar `ValueError`, o Drive ainda tem o
+   dataset antigo — resubir substituindo. Se imprimir "nucleo / Q&A clinico / expansao prot",
+   não achou o `train_v4.jsonl`.
 3. Célula 4 (train): **2 épocas**, LR 1e-4, base 8B, `train_on_responses_only`, `eval_dataset`.
    Olhar a **eval loss** por época — se subir na 2ª, `EPOCHS=1`.
-4. Célula 4b (sanity check): 6 respostas (protocolos antigos + novos, pergunta natural +
-   "explique o protocolo"). **Só exportar se todas citarem `[PROT-...]`, pararem sozinhas (EOS)
-   e o PT-BR estiver fluente (sem salada de palavras / loop de seções).**
+4. Célula 4b (sanity check): 8 perguntas — 5 clínicas + **3 de modelo de documento**. Imprime
+   no fim `OK: 8/8` ou a lista do que falhou. Critério automático: cita `PROT-`/`TPL-` (com ou
+   **sem** colchete — o dataset ensina 4× mais a forma sem), para no EOS, e as 3 de documento
+   **citam `TPL-`**. **Só exportar com 8/8** e depois de ler as respostas: o PT-BR precisa estar
+   fluente, sem salada de palavras nem loop de seções.
 5. Células de export → `medassist-q4_k_m.gguf` (~4.9 GB) no Drive.
 
 **Passo 3 — teste local** (infra já validada):
