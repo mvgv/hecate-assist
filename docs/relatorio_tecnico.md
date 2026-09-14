@@ -18,4 +18,3 @@ Documentos de apoio:
 - [`avaliacao.md`](avaliacao.md) — saída bruta de `medassist.finetune.evaluate` (tabela por exemplo).
 - [`desvios.md`](desvios.md) — todo desvio da especificação, com justificativa.
 - [`grafo_langgraph.md`](grafo_langgraph.md) — diagrama e especificação nó a nó do fluxo.
-- [`finetuning.md`](finetuning.md) — guia do pipeline de treino.

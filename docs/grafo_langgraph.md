@@ -1,6 +1,6 @@
 # Design detalhado do grafo LangGraph
 
-Este documento aprofunda a Fase 4 do [PLANO.md](plano.md): a especificação do fluxo de decisão do assistente médico.
+Especificação do fluxo de decisão do assistente médico, nó a nó.
 
 ## 1. Diagrama geral
 

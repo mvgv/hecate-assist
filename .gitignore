@@ -23,3 +23,6 @@ models/
 notebooks/.ipynb_checkpoints/
 
 .DS_Store
+
+# Notas de contexto de desenvolvimento (nao faz parte da entrega)
+CLAUDE.md

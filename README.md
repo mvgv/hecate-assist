@@ -12,10 +12,8 @@ NVIDIA via Docker Compose (app + Ollama).
 > (§D), avaliação (§E) e a comparação fine-tuned vs. base (§F), com um apêndice
 > sobre a métrica usada. O restante deste README são as instruções de uso.
 
-> Especificação completa: [`docs/especificacao.md`](docs/especificacao.md).
-> Plano de implementação: [`docs/plano.md`](docs/plano.md).
-> Design do grafo: [`docs/grafo_langgraph.md`](docs/grafo_langgraph.md).
-> Desvios da especificação: [`docs/desvios.md`](docs/desvios.md).
+> Design do grafo, nó a nó: [`docs/grafo_langgraph.md`](docs/grafo_langgraph.md).
+> Desvios e decisões de implementação: [`docs/desvios.md`](docs/desvios.md).
 
 ## Arquitetura em uma imagem
 

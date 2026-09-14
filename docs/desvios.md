@@ -1,8 +1,7 @@
 # Desvios da especificação
 
-Conforme instruído em [`especificacao.md`](especificacao.md) ("se algo
-for impossível, implemente o mais próximo possível e registre o desvio
-aqui"). Nenhum desvio altera as decisões de arquitetura do documento —
+Conforme instruído na especificação do projeto ("se algo for impossível,
+implemente o mais próximo possível e registre o desvio aqui"). Nenhum desvio altera as decisões de arquitetura do documento —
 todos são correções pontuais necessárias para o código rodar, ou
 preenchimento de lacunas não especificadas explicitamente.
 
@@ -404,6 +403,27 @@ Nenhuma mudança de código foi necessária para o serving migrar: o
 `llm/ollama_provider.py` só fala HTTP, e `docker-compose.gpu.yml` é um override
 que reserva a GPU para o serviço `ollama`. O caminho CPU continua funcional.
 
-`README.md` e `docs/finetuning.md` foram atualizados para o ambiente real. A
-`especificacao.md` e o `plano.md` **não** — são registros do que foi planejado,
-e reescrevê-los apagaria a história que este arquivo existe para preservar.
+O `README.md` foi atualizado para o ambiente real. A especificação e o plano
+originais, que descreviam a VPS, saíram do repositório junto com os demais
+documentos de apoio ao desenvolvimento (§24) — este registro é o que preserva
+a divergência.
+
+## 24. Documentos de apoio ao desenvolvimento fora do repositório
+
+A especificação, o plano de implementação, o guia de fine-tuning e as notas de
+contexto de sessão (`CLAUDE.md`) foram removidos do repositório. São artefatos
+de **processo**, não de entrega: guiaram a construção, mas quem clona o projeto
+não precisa deles para entender, rodar ou avaliar o sistema — isso está no
+`README.md`.
+
+Dois deles também já não descreviam o estado atual: a especificação e o plano
+falam da VPS CPU-only (§23), e o guia de fine-tuning descrevia a composição de
+dataset da v1 (3B, MedQuAD, exemplos de segurança), toda abandonada nas
+iterações seguintes. Documento desatualizado ao lado de documento correto é
+pior que documento ausente.
+
+O que permanece é o que sustenta a entrega: o relatório técnico (`README.md`),
+o diagrama e a especificação nó a nó do fluxo (`grafo_langgraph.md`), a saída
+da avaliação (`avaliacao.md`) e este registro de desvios.
+
+O histórico do git preserva as versões removidas.
