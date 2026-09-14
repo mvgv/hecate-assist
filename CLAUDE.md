@@ -307,7 +307,9 @@ substituir — e aí o notebook treina no dataset antigo):
    dataset antigo — resubir substituindo. Se imprimir "nucleo / Q&A clinico / expansao prot",
    não achou o `train_v4.jsonl`.
 3. Célula 4 (train): **2 épocas**, LR 1e-4, base 8B, `train_on_responses_only`, `eval_dataset`.
-   Olhar a **eval loss** por época — se subir na 2ª, `EPOCHS=1`.
+   A célula salva os adaptadores **antes** de imprimir qualquer métrica e depois lista a
+   `eval_loss` por época, avisando se subiu na última (= overfit → `EPOCHS=1`). Se a
+   eval loss subir, retreinar; o `modelo` em memória serve para 4b/export de qualquer jeito.
 4. Célula 4b (sanity check): 8 perguntas — 5 clínicas + **3 de modelo de documento**. Imprime
    no fim `OK: 8/8` ou a lista do que falhou. Critério automático: cita `PROT-`/`TPL-` (com ou
    **sem** colchete — o dataset ensina 4× mais a forma sem), para no EOS, e as 3 de documento
