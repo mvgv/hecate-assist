@@ -55,3 +55,22 @@ def test_multiplos_tipos_no_mesmo_texto():
     assert set(tipos) >= {"nome", "cpf", "telefone"}
     assert "Maria Souza" not in limpo
     assert "111.222.333-44" not in limpo
+
+
+def test_thread_id_nao_e_mascarado_na_trilha():
+    """O thread_id correlaciona os eventos; o regex de telefone casava com UUIDs."""
+    from medassist.logging_setup import _mask_pii
+
+    evento = {
+        "thread_id": "12345678-3193-4afe-9963-3e11223344",
+        "no": "triagem",
+        "event": "no_concluido",
+    }
+    assert _mask_pii(None, None, dict(evento)) == evento
+
+
+def test_campos_livres_continuam_mascarados():
+    from medassist.logging_setup import _mask_pii
+
+    saida = _mask_pii(None, None, {"resposta": "contato (11) 98765-4321"})
+    assert "98765" not in saida["resposta"]

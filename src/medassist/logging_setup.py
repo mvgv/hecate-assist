@@ -33,11 +33,22 @@ _LIBS_RUIDOSAS = (
 )
 
 
+# Chaves estruturais da trilha: identificadores gerados pelo sistema e metadados
+# do evento, nunca PII. Precisam ficar FORA da mascara -- o `thread_id` e a chave
+# que correlaciona os eventos de uma mesma conversa, e o regex de telefone
+# (`9?\d{4}-?\d{4}`) casa com qualquer segmento de 8 digitos de um UUID. O
+# resultado era uma trilha com "thread_id": "[TELEFONE]-3193-4afe-9963-3e[TELEFONE]",
+# mascarada de forma imprevisivel (so nos UUIDs que calham de ter 8 digitos
+# seguidos), justamente no campo que existe para rastrear.
+_CHAVES_SEM_MASCARA = frozenset({"thread_id", "no", "event", "level", "timestamp"})
+
+
 def _mask_pii(_logger, _method_name, event_dict: dict[str, Any]) -> dict[str, Any]:
     for chave, valor in list(event_dict.items()):
-        if isinstance(valor, str):
-            limpo, _tipos = anonimizar(valor)
-            event_dict[chave] = limpo
+        if chave in _CHAVES_SEM_MASCARA or not isinstance(valor, str):
+            continue
+        limpo, _tipos = anonimizar(valor)
+        event_dict[chave] = limpo
     return event_dict
 
 
