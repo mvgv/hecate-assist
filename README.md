@@ -157,19 +157,6 @@ docker run --rm caddy:2 caddy hash-password --plaintext "sua-senha"
 # copiar o hash para CADDY_BASIC_AUTH_HASH no .env
 ```
 
-## Deploy na VPS (16 GB RAM, sem GPU)
-
-1. Provisionar Ubuntu 22.04/24.04 com Docker Engine + compose plugin, `ufw`
-   (liberar só 22/80/443) e swap de 4 GB.
-2. `git clone` deste repositório, copiar `.env.example` para `.env` e
-   preencher os segredos (basic auth do Caddy).
-3. Baixar o GGUF fine-tuned para `./models/medassist-q4_k_m.gguf`.
-4. `docker compose --profile full up -d` e conferir os healthchecks.
-5. Backup: `tar` periódico dos volumes `app_data` e `app_logs` para fora da VPS.
-
-Detalhes de orçamento de RAM, riscos e mitigação: ver
-[`docs/plano.md` §5](docs/plano.md).
-
 ## Estrutura do projeto
 
 ```
