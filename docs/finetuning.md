@@ -1,11 +1,11 @@
-# Guia de Fine-tuning — do dataset ao GGUF na VPS
+# Guia de Fine-tuning — do dataset ao GGUF servido localmente
 
 Complementa [PLANO.md](plano.md) (Fase 2) e [ESPECIFICACAO.md](especificacao.md) §13.
 
 ## 1. Visão geral do processo
 
 ```
-[local]                    [Colab GPU T4]                       [VPS CPU]
+[local]                    [Colab GPU T4]                    [GPU local]
 build-dataset  ──►  QLoRA (Unsloth + TRL)  ──►  export GGUF  ──►  ollama create
 train/val.jsonl     adaptadores LoRA (~100MB)   Q4_K_M (~2GB)     medassist:latest
                           │
@@ -151,7 +151,7 @@ tokenizer.save_pretrained("medassist-lora")
 model.save_pretrained_gguf("medassist-gguf", tokenizer, quantization_method="q4_k_m")
 ```
 
-### Célula 8 — Publicar no HF Hub (trânsito para a VPS)
+### Célula 8 — Publicar no HF Hub (opcional, para transporte do artefato)
 ```python
 from huggingface_hub import HfApi
 api = HfApi(token=HF_TOKEN)
@@ -197,12 +197,12 @@ Esperado e honesto para o relatório: o base já "sabe medicina" razoavelmente; 
 3. **Colab desconecta**: checkpoints no Drive (`save_steps=100`) + `trainer.train(resume_from_checkpoint=True)`.
 4. **EOS ausente** → modelo não para de gerar. O `apply_chat_template` com template llama-3.1 já fecha os turnos; conferir no sanity check (célula 6) que a geração termina sozinha.
 5. **Só métrica, sem olho**: ROUGE alto com resposta clinicamente ruim acontece. Os 50 itens do judge + leitura manual de 10 são obrigatórios.
-6. **Quantizar e não reavaliar**: avaliar o Q4_K_M final (o que roda na VPS), não o modelo em fp16 do Colab.
+6. **Quantizar e não reavaliar**: avaliar o Q4_K_M final (o que é servido), não o modelo em fp16 do Colab.
 
-## 8. Deploy do artefato na VPS
+## 8. Deploy do artefato
 
 ```bash
-# na VPS (uma vez por versão de modelo):
+# na máquina que serve o modelo (uma vez por versão):
 mkdir -p models
 hf download SEU_USER/medassist-3b-gguf medassist-gguf-unsloth.Q4_K_M.gguf \
    --local-dir models/ --token $HF_TOKEN
@@ -229,6 +229,6 @@ Versionamento: taguear o repo HF (`v1`, `v2`...) e registrar no relatório qual 
 - [ ] Rodar notebook até célula 6; sanity check aprovado
 - [ ] Exportar GGUF Q4_K_M + subir ao HF Hub (repo privado, tag `v1`)
 - [ ] `evaluate.py` base vs. tuned → tabela em `docs/avaliacao.md`
-- [ ] Download na VPS + `model-init` + smoke test via Ollama
-- [ ] Trocar `MEDASSIST_LLM_PROVIDER=ollama` no `.env` da VPS e validar o fluxo completo na UI
+- [ ] Download do GGUF + `model-init` + smoke test via Ollama
+- [ ] Trocar `MEDASSIST_LLM_PROVIDER=ollama` no `.env` e validar o fluxo completo na UI
 - [ ] Guardar curvas de loss (print do trainer) para o relatório e o vídeo

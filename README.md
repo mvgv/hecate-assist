@@ -4,8 +4,8 @@ Assistente virtual médico para apoio à decisão clínica — terceira entrega 
 Tech Challenge IADT. Monolito Python com **LangGraph** (fluxo de decisão),
 **RAG** sobre protocolos institucionais sintéticos (ChromaDB), consulta a
 base estruturada de pacientes (SQLite), guardrails de segurança,
-human-in-the-loop e logging de auditoria. Roda em CPU via Docker Compose
-(app + Ollama + Caddy).
+human-in-the-loop e logging de auditoria. Roda numa máquina local com GPU
+NVIDIA via Docker Compose (app + Ollama).
 
 > 📄 **[Relatório técnico](#relatório-técnico)** — arquitetura e prompts do grafo
 > (§A), decisões de engenharia (§B), fine-tuning e QLoRA (§C), estratégia de RAG
@@ -101,9 +101,10 @@ eles — o namespace `PROT-` é único de propósito ([`docs/desvios.md` §22](d
 Todo texto é claramente marcado como **"Documento sintético para fins
 acadêmicos"** e não deve ser usado como referência clínica real.
 
-## Fine-tuning (Colab/Kaggle — não roda na VPS)
+## Fine-tuning (Colab — não roda junto da aplicação)
 
-O treino roda fora do monolito, em GPU gratuita:
+O treino roda fora do monolito, numa GPU de nuvem gratuita — a GPU local
+serve o modelo, não o treina:
 
 ```bash
 # 1. Gerar o dataset de fine-tuning (FAQs + protocolos + modelos de documento)
@@ -310,11 +311,17 @@ reprovação, não um "tente de novo" genérico.
 
 ### B.1 Monolito, não microsserviços
 
-O alvo de deploy é uma VPS de 16 GB sem GPU. Repartir o sistema em serviços
-multiplicaria o consumo de RAM em runtimes Python duplicados e adicionaria
-latência de rede entre componentes que sempre são chamados em sequência, na
-mesma requisição. O monolito é um processo só; a separação existe onde importa,
-nos módulos.
+O alvo de execução é uma **máquina só**, com uma GPU de 8 GB. Repartir o
+sistema em serviços multiplicaria o consumo de memória em runtimes Python
+duplicados e adicionaria latência de rede entre componentes que sempre são
+chamados em sequência, na mesma requisição — sem nada em troca, já que não há
+o que escalar horizontalmente num host único. O monolito é um processo só; a
+separação existe onde importa, nos módulos.
+
+O recurso escasso aqui não é CPU nem RAM: é **VRAM**. Os 8 GB da placa não
+comportam os dois modelos ao mesmo tempo, e é essa restrição — não a de
+processo — que moldou a arquitetura, colocando a triagem na CPU para deixar a
+GPU inteira ao modelo de geração (§A.3).
 
 O único componente que escala separado é a inferência, e ela já está isolada
 atrás de HTTP no container `ollama` — o `llm/ollama_provider.py` só fala HTTP,

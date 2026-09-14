@@ -381,3 +381,29 @@ A lição generalizável: o comportamento de citação de um modelo fine-tuned �
 restrição do sistema, não uma preferência. Quando o esquema de identificadores
 é escolha sua e o comportamento do modelo não é, alinhar o esquema ao modelo
 sai mais barato e mais confiável que treinar o modelo contra o próprio prior.
+
+## 23. Ambiente alvo — GPU local em vez de VPS CPU-only
+
+A especificação e o plano descrevem o deploy numa VPS de 16 GB **sem GPU**, com
+o modelo servido em CPU. O projeto passou a rodar numa **máquina local com GPU
+NVIDIA de 8 GB**, e a diferença não é só de hospedagem — muda o que é escasso:
+
+| | VPS planejada | Ambiente real |
+|---|---|---|
+| Recurso crítico | RAM (16 GB) | VRAM (8 GB) |
+| Geração de resposta | ~12 tok/s em CPU | ~52 tok/s em GPU |
+| `ask` quente | 20–40 s por chamada de LLM | 25–45 s no fluxo inteiro |
+| Modelo auxiliar | caberia na RAM | **não cabe** na GPU junto do 8B |
+
+A última linha é a que teve consequência de arquitetura: com os dois modelos
+disputando os 8 GB, o Ollama descarregava um a cada nó e um `ask` levava 3–4
+minutos. A triagem foi para a CPU (`ollama_aux_num_gpu=0`) — decisão que não
+existiria no cenário original, onde tudo era CPU de qualquer jeito.
+
+Nenhuma mudança de código foi necessária para o serving migrar: o
+`llm/ollama_provider.py` só fala HTTP, e `docker-compose.gpu.yml` é um override
+que reserva a GPU para o serviço `ollama`. O caminho CPU continua funcional.
+
+`README.md` e `docs/finetuning.md` foram atualizados para o ambiente real. A
+`especificacao.md` e o `plano.md` **não** — são registros do que foi planejado,
+e reescrevê-los apagaria a história que este arquivo existe para preservar.
