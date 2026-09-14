@@ -147,7 +147,7 @@ em disco). **50 testes passando, `ruff` limpo.**
 O enunciado pede protocolos + FAQs + **"modelos de laudos, receitas e procedimentos internos"**.
 Os templates existiam em `data/synthetic/templates/` mas eram **arquivo morto**: `grep -c laudo`
 dava 0 em `train.jsonl`/`train_v4.jsonl`/`qa_clinico.jsonl`, e `ingest` só varria `protocolos/*.md`.
-Viraram documentos de primeira classe `TPL-001..003` com frontmatter e 4 seções numeradas →
+Viraram documentos de primeira classe `PROT-026..028` com frontmatter e 4 seções numeradas →
 entram no RAG (100 → **112 chunks**) e no dataset (`train.jsonl` 150 → **165**,
 `docs/train_v4.jsonl` 425 → **439**). Ver `docs/desvios.md` §17.
 
@@ -161,7 +161,7 @@ nos dois sentidos. `docs/desvios.md` §20.
 colchete (`\[PROT-\d+`), mas o dataset ensina majoritariamente a forma **sem** colchete
 (93 × `Conforme PROT-NNN §x` contra 24 × `[PROT-NNN]` no `train.jsonl`) — que é como o modelo
 gera. O guardrail de explainability nunca disparava em produção. Descoberto ao testar uma
-pergunta de template: RAG trouxe `TPL-002` certo, o modelo respondeu o conteúdo certo mas
+pergunta de template: RAG trouxe o documento certo, o modelo respondeu o conteúdo certo mas
 citou "Conforme PROT-001 §1", e passou. Corrigido (colchete opcional + grupo de captura);
 a mesma pergunta agora regenera 2× e cai em `resposta_segura`. `docs/desvios.md` §18.
 
@@ -174,13 +174,17 @@ casa pelo par `(doc_id, §N)`. Revalidado: sepse §2→§2, hipercalemia §4→�
 **`HF_HUB_OFFLINE=1`** na imagem — o cold start perdia ~20 s em retry de SSL batendo no HF Hub
 mesmo com o modelo já no cache do build. `docs/desvios.md` §21.
 
-**PRECISA RETREINAR? Sim, se quiser responder sobre laudo/receita/procedimento.** O GGUF v4 que
-está no Ollama foi treinado nos 425 exemplos antigos, sem a fatia TPL. Testado no Docker GPU: o
-RAG recupera `TPL-002 §2` corretamente e o conteúdo da resposta sai certo, mas o modelo **cita
-`PROT-001`** — ele nunca viu o prefixo `TPL-` e cai no padrão memorizado. Com o guardrail
-consertado isso vira `resposta_segura` (correto, porém inútil para o médico). As perguntas
-clínicas (PROT) continuam 100% OK. Para fechar: subir `docs/train_v4.jsonl` (439 ex.) para o
-Drive e rodar o notebook v4 de novo — nada mais mudou no pipeline.
+**RETREINO: NÃO É NECESSÁRIO — resolvido por namespace (2026-09-13).** Os modelos de documento
+nasceram como `TPL-001..003` e o modelo v4 **não conseguia citá-los** (respondia
+"Conforme PROT-002 §1..." com conteúdo inventado, descartando o contexto). Duas tentativas
+falharam: (a) instrução no system prompt para copiar o id do contexto — não mudou nada, num caso
+piorou; (b) **retreino v5 completo** (439 ex., 14 de TPL, rodado no Colab) — continuou citando
+`PROT-` até em prompts literalmente presentes no treino, porque 14/439 são ~1,8 passos de
+gradiente em 56, contra 425 reforçando `PROT-`. **A solução foi renomear para `PROT-026..028`:**
+3/3 corretos com o GGUF que já estava servido, zero retreino. Ver `docs/desvios.md` §22 e o §D.1
+do relatório no README. O GGUF em produção continua sendo o **v4 de 425 exemplos**; o
+`docs/train_v4.jsonl` atual (465 ex., já com PROT-026..028 em 45 exemplos) serve para um retreino
+futuro, que reforçaria o conteúdo mas não é necessário para o requisito.
 
 **O que continua pendente (decisão do usuário: "relatório e vídeo ficam pro final"):**
 1. `docs/relatorio_tecnico.md` — ainda 100% esqueleto, todas as seções em checkbox vazio. É
@@ -293,9 +297,9 @@ hipercalemia/DPOC/HDA/TVP resolvidas). 39 testes passando, `ruff` limpo. Stack d
 **Passo 1 — preparar o Drive.** Subir para `MyDrive/medassist/`, **SUBSTITUINDO** os arquivos
 que já estiverem lá (o Drive cria `arquivo (1).jsonl` em vez de substituir se você não mandar
 substituir — e aí o notebook treina no dataset antigo):
-- `docs/train_v4.jsonl` → **`train_v4.jsonl`** — 439 exemplos, com a fatia TPL. **O que estiver
+- `docs/train_v4.jsonl` → **`train_v4.jsonl`** — 465 exemplos, com os modelos de documento. **O que estiver
   no Drive hoje é a versão de 425, sem os modelos de documento.** A célula 3 tem uma guarda que
-  aborta se o arquivo carregado não tiver nenhum exemplo `TPL-`.
+  aborta se o arquivo carregado não tiver nenhum exemplo `PROT-026..028`.
 - `data/processed/val.jsonl` → `val.jsonl` (`eval_dataset`) — **também mudou** (8 → 9 exemplos).
 - `data/synthetic/qa_clinico.jsonl` → `qa_clinico.jsonl` (só usado se `REBUILD=True`)
 - `data/processed/train.jsonl` → `train.jsonl` (núcleo, fallback se não houver `train_v4.jsonl`)
@@ -303,7 +307,7 @@ substituir — e aí o notebook treina no dataset antigo):
 **Passo 2 — rodar o notebook** (`notebooks/02_finetune_colab.ipynb`), runtime GPU (Colab Pro):
 1. Células 1-2 (install, mount).
 2. Célula 3: deve imprimir `cache -> 439 exemplos ...` seguido de
-   `modelos de documento (TPL-NNN): 14 exemplos`. Se levantar `ValueError`, o Drive ainda tem o
+   `modelos de documento: 45 exemplos`. Se levantar `ValueError`, o Drive ainda tem o
    dataset antigo — resubir substituindo. Se imprimir "nucleo / Q&A clinico / expansao prot",
    não achou o `train_v4.jsonl`.
 3. Célula 4 (train): **2 épocas**, LR 1e-4, base 8B, `train_on_responses_only`, `eval_dataset`.
@@ -311,9 +315,9 @@ substituir — e aí o notebook treina no dataset antigo):
    `eval_loss` por época, avisando se subiu na última (= overfit → `EPOCHS=1`). Se a
    eval loss subir, retreinar; o `modelo` em memória serve para 4b/export de qualquer jeito.
 4. Célula 4b (sanity check): 8 perguntas — 5 clínicas + **3 de modelo de documento**. Imprime
-   no fim `OK: 8/8` ou a lista do que falhou. Critério automático: cita `PROT-`/`TPL-` (com ou
+   no fim `OK: 8/8` ou a lista do que falhou. Critério automático: cita `PROT-` (com ou
    **sem** colchete — o dataset ensina 4× mais a forma sem), para no EOS, e as 3 de documento
-   **citam `TPL-`**. **Só exportar com 8/8** e depois de ler as respostas: o PT-BR precisa estar
+   **citam `PROT-026..028`**. **Só exportar com 8/8** e depois de ler as respostas: o PT-BR precisa estar
    fluente, sem salada de palavras nem loop de seções.
 5. Células de export → `medassist-q4_k_m.gguf` (~4.9 GB) no Drive.
 
@@ -336,17 +340,17 @@ v1 (opus-mt), v2 (MedQuAD EN cru) e v3 (116 ex. + 3B) descartadas — ver Status
 **célula 3** (ou por `scripts/gen_dataset_v4.py`, que gera o `docs/train_v4.jsonl` idêntico sem Colab):
 - **Núcleo:** `data/processed/train.jsonl` **inteiro** (156 ex.: 25 protocolo "Explique o
   protocolo ..." + 125 FAQ de seção + 15 de modelo de documento), 100% citam
-  `[PROT-NNN §x]` ou `[TPL-NNN §x]`, FAQs **completas** (era truncado em 180 chars —
+  `[PROT-NNN §x]`, FAQs **completas** (era truncado em 180 chars —
   `docs/desvios.md` §13).
 - **Q&A clínico:** `data/synthetic/qa_clinico.jsonl` (235 ex.) — perguntas de médico em linguagem
   natural, respostas ancoradas nos 25 protocolos, **cada uma única** (nada de mesma resposta ×N).
 - **Expansão dos protocolos:** cada "Explique o protocolo ..." em **+2** fraseados (~48 ex.) —
   a v3 usava 4 e repetia a mesma resposta longa, reforçando a memorização de forma.
-- **Modelos de documento:** `data/synthetic/templates/` (TPL-001 laudo, TPL-002 receita,
-  TPL-003 descrição de procedimento) — a terceira fonte que o enunciado exige, ausente até
+- **Modelos de documento:** `data/synthetic/templates/` (PROT-026 laudo, PROT-027 receita,
+  PROT-028 descrição de procedimento) — a terceira fonte que o enunciado exige, ausente até
   2026-09-13 (`docs/desvios.md` §17). Entram pelo núcleo.
 - **Total 439**, fecho PT-BR rotacionado entre 5 fraseados. **O GGUF servido hoje foi treinado
-  nos 425 antigos** — sem a fatia TPL; ver a seção de auditoria de 2026-09-13.
+  nos 425 antigos** — sem os modelos de documento; ver a seção de auditoria de 2026-09-13.
 - **13 protocolos novos** (PROT-013..025) somados ao `PROTOCOLOS` de `generate_synthetic.py`;
   `medassist build-dataset` e `generate_synthetic` regerados. RAG do grafo passa a indexar os 25.
 - **Ficam de fora:** MedQuAD, opus-mt, PubMedQA, exemplos de segurança (guardrails = grafo).

@@ -1,5 +1,5 @@
 ---
-doc_id: TPL-003
+doc_id: PROT-028
 titulo: Modelo Institucional de Descrição de Procedimento
 tipo: template
 versao: "1.0"

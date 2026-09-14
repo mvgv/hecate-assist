@@ -1,5 +1,5 @@
 ---
-doc_id: TPL-001
+doc_id: PROT-026
 titulo: Modelo Institucional de Laudo de Exame
 tipo: template
 versao: "1.0"

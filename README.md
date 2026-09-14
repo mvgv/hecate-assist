@@ -90,12 +90,13 @@ de forma determinística (sem LLM) por
 |---|---|
 | `protocolos/` | 25 protocolos clínicos (`PROT-001`…`PROT-025`), Markdown com frontmatter e seções numeradas |
 | `faqs.jsonl` | 125 perguntas frequentes de médicos, cada resposta citando `[PROT-NNN §secao]` |
-| `templates/` | 3 modelos institucionais de documento (`TPL-001` laudo, `TPL-002` receita, `TPL-003` descrição de procedimento) |
+| `templates/` | 3 modelos institucionais de documento (`PROT-026` laudo, `PROT-027` receita, `PROT-028` descrição de procedimento) |
 | `qa_clinico.jsonl` | 235 perguntas em linguagem natural ancoradas nos protocolos (só fine-tuning) |
 
 Os modelos de documento seguem a mesma estrutura dos protocolos (quando usar,
 estrutura, exemplo preenchido, regras de preenchimento), então entram tanto no
-índice do RAG quanto no dataset de fine-tuning e são citáveis como `[TPL-NNN §secao]`.
+índice do RAG quanto no dataset de fine-tuning, e são citáveis exatamente como
+eles — o namespace `PROT-` é único de propósito ([`docs/desvios.md` §22](docs/desvios.md)).
 Todo texto é claramente marcado como **"Documento sintético para fins
 acadêmicos"** e não deve ser usado como referência clínica real.
 
@@ -413,7 +414,7 @@ do notebook), em três fatias:
 
 | Fatia | Qtd. | Papel |
 |---|---|---|
-| Núcleo (`train.jsonl`) | 156 | 25 protocolos "Explique o protocolo…" + 125 FAQs de seção + 15 de modelo de documento; 100% citam `[PROT-NNN §x]` ou `[TPL-NNN §x]` |
+| Núcleo (`train.jsonl`) | 182 | 25 protocolos "Explique o protocolo…" + 125 FAQs de seção + 45 de modelo de documento; 100% citam `[PROT-NNN §x]` |
 | Q&A clínico | 235 | Perguntas de médico em linguagem natural — parciais, cenários, cross-protocolo — **cada resposta única** |
 | Expansão | 48 | Cada "Explique o protocolo…" em +2 fraseados |
 
@@ -507,7 +508,7 @@ varredura limpa não é.
 
 **`doc_ids` parece favorecer o base — é artefato da métrica.** Quando a
 referência não cita nenhum `PROT-NNN`, o scorer dá ponto a quem *também não
-citar nada*. O exemplo 9 tem referência `[TPL-002 §4]`: o base tirou 1.000 por
+citar nada*. O exemplo 9 tem referência a um modelo de documento: o base tirou 1.000 por
 não saber citar, o `medassist` tirou 0.000 por citar um id errado. Somado ao
 exemplo 1, dá exatamente os 2/9 do base contra 1/9 do fine-tuned. Traduzindo: o
 base "vence" porque não sabe citar, então nunca é pego citando errado.
@@ -577,16 +578,39 @@ arquitetura de novo:
 | RAG | Conteúdo factual e rastreável | ROUGE-L 0.234 → 0.803 |
 | Grafo/guardrails | Segurança, validação humana, auditoria | 100% determinístico, testável |
 
-Duas ressalvas honestas para fechar:
+### D.1 Um corolário: o comportamento do modelo como restrição de projeto
 
-1. O checkpoint servido hoje foi treinado **antes** de os modelos de laudo,
-   receita e procedimento entrarem no dataset. Na prática: o RAG recupera o
-   `TPL-002` corretamente e o modelo reescreve o conteúdo com fidelidade
-   (ROUGE-L **0.912** nesse exemplo), mas rotula a citação como `PROT-NNN` —
-   e o guardrail, corretamente, recusa. Verificado que **não é corrigível por
-   prompt**: instruir "copie o identificador do contexto" não altera o
-   comportamento, porque o prefixo está soldado nos pesos por 425 exemplos.
-   Fechar esse item exige retreinar com os 439.
-2. Os dados são sintéticos e determinísticos por escolha — o que garante
-   reprodutibilidade e ausência de PII real, mas significa que nenhum número
-   aqui é evidência de desempenho clínico.
+O episódio mais útil do projeto não está em nenhuma métrica. Os modelos de
+laudo, receita e procedimento nasceram com identificadores próprios
+(`TPL-001..003`), o que é semanticamente mais limpo. O modelo, fine-tuned em 425
+exemplos que citam `PROT-NNN`, **não conseguia usá-los**: perguntado sobre a
+estrutura do laudo, com o documento certo recuperado e presente no contexto,
+respondia *"Conforme PROT-002 §1…"* — prefixo inexistente, número aleatório e
+conteúdo inventado. O identificador desconhecido o fazia descartar o contexto
+inteiro.
+
+Duas correções falharam. Instruir no system prompt "copie o identificador
+exatamente como aparece no contexto" não mudou nada — em um caso piorou.
+Retreinar com uma fatia `TPL-` (14 exemplos em 439) também não: o modelo
+continuou citando `PROT-` até em prompts que estavam literalmente no treino,
+porque 14 exemplos são ~1,8 passos de gradiente numa corrida de 56, contra 425
+reforçando o padrão oposto.
+
+O que resolveu foi **renomear os documentos para `PROT-026..028`** — 3/3 corretos
+com o mesmo GGUF já servido, sem nenhum retreino ([`docs/desvios.md` §22](docs/desvios.md)).
+
+A generalização vale mais que o caso: o comportamento de citação de um modelo
+fine-tuned é uma **restrição do sistema**, não uma preferência ajustável. Quando
+o esquema de identificadores é escolha do projeto e o comportamento do modelo
+não é, alinhar o esquema ao modelo sai mais barato e mais confiável do que
+treinar o modelo contra o próprio prior. O custo aqui foi semântico — `PROT-`
+passou a significar "documento institucional citável" em vez de "protocolo
+clínico" — e comprou um namespace único, com uma só regex de fonte alucinada e
+um só resolvedor de fontes.
+
+### D.2 Ressalva
+
+Os dados são sintéticos e determinísticos por escolha — o que garante
+reprodutibilidade e ausência de PII real, mas significa que nenhum número aqui
+é evidência de desempenho clínico. A validação médica não é uma ressalva do
+relatório: é parte do produto.

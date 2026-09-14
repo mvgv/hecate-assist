@@ -7,15 +7,18 @@ _RE_PRESCRICAO = re.compile(
 _RE_VALIDACAO = re.compile(r"validação|validacao|médico responsável|medico responsavel|avaliar", re.IGNORECASE)
 _RE_DIAGNOSTICO = re.compile(r"\bo paciente (tem|está com|esta com|é portador de|e portador de)\b", re.IGNORECASE)
 _RE_HEDGE = re.compile(r"compatível|compativel|sugestivo|possível|possivel|provável|provavel", re.IGNORECASE)
-# Protocolos clinicos (PROT-NNN) e modelos institucionais de documento
-# (TPL-NNN, laudo/receita/procedimento) — os dois sao citaveis e os dois
-# precisam passar pela checagem de fonte alucinada.
+# Todo documento institucional citavel usa o prefixo PROT-: protocolos
+# clinicos (PROT-001..025) e modelos de laudo/receita/procedimento
+# (PROT-026..028). Um so namespace, uma so checagem de fonte alucinada.
 #
 # O colchete e OPCIONAL de proposito: o dataset ensina as duas formas, mas a
 # dominante e sem colchete ("Conforme PROT-001 §2, ...") — 93 ocorrencias
 # contra 24 com colchete. Enquanto o regex exigia "[", o `fonte_alucinada`
 # nunca disparava na forma que o modelo realmente gera.
-_RE_FONTE = re.compile(r"\[?((?:PROT|TPL)-\d+)", re.IGNORECASE)
+#
+# Prefixo explicito em vez de generico ([A-Z]+-\d+): termos clinicos como
+# CURB-65 e COVID-19 casariam com o generico e virariam fonte alucinada.
+_RE_FONTE = re.compile(r"\[?(PROT-\d+)", re.IGNORECASE)
 _RE_SUGESTAO_CONDUTA = re.compile(r"\b(sugere-se|recomenda-se|conduta|iniciar|tratamento)\b", re.IGNORECASE)
 
 

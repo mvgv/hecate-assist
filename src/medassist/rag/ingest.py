@@ -80,8 +80,8 @@ def _chunks_do_arquivo(caminho: Path) -> list[Chunk]:
 def ingest(protocolos_dir: str | None = None, templates_dir: str | None = None) -> int:
     """Le protocolos e modelos de documento, embute e grava na collection Chroma.
 
-    Alem dos protocolos clinicos (PROT-NNN), indexa os modelos institucionais de
-    laudo, receita e descricao de procedimento (TPL-NNN) — o assistente precisa
+    Alem dos protocolos clinicos (PROT-001..025), indexa os modelos institucionais
+    de laudo, receita e procedimento (PROT-026..028) — o assistente precisa
     conseguir citar a estrutura desses documentos quando o medico pergunta como
     preencher um laudo ou o que a receita de alta exige.
 

@@ -104,10 +104,10 @@ def test_nao_requer_aprovacao_sem_paciente(tmp_settings):
 
 
 def test_fonte_de_modelo_de_documento_alucinada_regenera(tmp_settings):
-    """Citacao [TPL-NNN] passa pela mesma checagem de fonte que os protocolos."""
+    """Citacao [PROT-026..028] passa pela mesma checagem de fonte que os protocolos."""
     state = {
-        "resposta_bruta": "Use a estrutura descrita em [TPL-009 §2].",
-        "docs": [{"doc_id": "TPL-001", "secao": "2. Estrutura do documento"}],
+        "resposta_bruta": "Use a estrutura descrita em [PROT-099 §2].",
+        "docs": [{"doc_id": "PROT-026", "secao": "2. Estrutura do documento"}],
     }
     resultado = guardrails.validar(state)
     assert resultado["veredito"] == "regenerar"
@@ -116,8 +116,8 @@ def test_fonte_de_modelo_de_documento_alucinada_regenera(tmp_settings):
 
 def test_fonte_de_modelo_de_documento_valida_nao_viola(tmp_settings):
     state = {
-        "resposta_bruta": "Conforme [TPL-001 §2], o laudo tem descricao e conclusao.",
-        "docs": [{"doc_id": "TPL-001", "secao": "2. Estrutura do documento"}],
+        "resposta_bruta": "Conforme [PROT-026 §2], o laudo tem descricao e conclusao.",
+        "docs": [{"doc_id": "PROT-026", "secao": "2. Estrutura do documento"}],
     }
     assert guardrails.validar(state)["veredito"] == "aprovada"
 
@@ -126,7 +126,7 @@ def test_fonte_alucinada_sem_colchete_regenera(tmp_settings):
     """A forma dominante no dataset e "Conforme PROT-001 §2" — sem colchete."""
     state = {
         "resposta_bruta": "Conforme PROT-001 §1, o laudo tem descricao e conclusao.",
-        "docs": [{"doc_id": "TPL-001", "secao": "2. Estrutura do documento"}],
+        "docs": [{"doc_id": "PROT-026", "secao": "2. Estrutura do documento"}],
     }
     resultado = guardrails.validar(state)
     assert resultado["veredito"] == "regenerar"
@@ -135,7 +135,7 @@ def test_fonte_alucinada_sem_colchete_regenera(tmp_settings):
 
 def test_fonte_valida_sem_colchete_nao_viola(tmp_settings):
     state = {
-        "resposta_bruta": "Conforme TPL-001 §2, o laudo tem descricao e conclusao.",
-        "docs": [{"doc_id": "TPL-001", "secao": "2. Estrutura do documento"}],
+        "resposta_bruta": "Conforme PROT-026 §2, o laudo tem descricao e conclusao.",
+        "docs": [{"doc_id": "PROT-026", "secao": "2. Estrutura do documento"}],
     }
     assert guardrails.validar(state)["veredito"] == "aprovada"

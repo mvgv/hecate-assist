@@ -1068,7 +1068,7 @@ PROTOCOLOS = [
 TEMPLATES = {
     "laudo.md": (
         "---\n"
-        "doc_id: TPL-001\n"
+        "doc_id: PROT-026\n"
         "titulo: Modelo Institucional de Laudo de Exame\n"
         "tipo: template\n"
         'versao: "1.0"\n'
@@ -1109,7 +1109,7 @@ TEMPLATES = {
     ),
     "receita.md": (
         "---\n"
-        "doc_id: TPL-002\n"
+        "doc_id: PROT-027\n"
         "titulo: Modelo Institucional de Receita Médica\n"
         "tipo: template\n"
         'versao: "1.0"\n'
@@ -1147,7 +1147,7 @@ TEMPLATES = {
     ),
     "procedimento.md": (
         "---\n"
-        "doc_id: TPL-003\n"
+        "doc_id: PROT-028\n"
         "titulo: Modelo Institucional de Descrição de Procedimento\n"
         "tipo: template\n"
         'versao: "1.0"\n'

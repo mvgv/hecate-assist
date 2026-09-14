@@ -1,5 +1,5 @@
 ---
-doc_id: TPL-002
+doc_id: PROT-027
 titulo: Modelo Institucional de Receita Médica
 tipo: template
 versao: "1.0"

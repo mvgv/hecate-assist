@@ -32,11 +32,11 @@ def test_buscar_respeita_top_k(chroma_ingested):
 
 
 def test_ingest_indexa_modelos_de_documento(chroma_ingested):
-    """Laudo/receita/procedimento (TPL-NNN) entram na mesma collection dos protocolos."""
+    """Laudo/receita/procedimento (PROT-026..028) entram na mesma collection dos protocolos."""
     resultados = buscar("como preencher a receita medica de alta", top_k=5, min_score=-1)
-    assert any(r["doc_id"].startswith("TPL-") for r in resultados)
+    assert any(r["doc_id"].startswith("PROT-02") for r in resultados)
 
 
 def test_buscar_recupera_modelo_de_laudo(chroma_ingested):
     resultados = buscar("estrutura do laudo de exame", top_k=3, min_score=-1)
-    assert resultados[0]["doc_id"] == "TPL-001"
+    assert resultados[0]["doc_id"] == "PROT-026"

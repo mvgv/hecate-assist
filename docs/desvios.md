@@ -253,7 +253,7 @@ a pedir `structlog.get_logger("medassist.audit")`. Assinaturas de `get_logger` e
 `@auditado` não mudam. Validado: um `ask` completo gera exatamente 10 linhas no
 jsonl (5 `no_iniciado` + 5 `no_concluido`), zero ruído.
 
-## 17. Modelos de laudo/receita/procedimento viraram documentos citáveis (TPL-NNN)
+## 17. Modelos de laudo/receita/procedimento viraram documentos citáveis
 
 O enunciado da fase exige que o fine-tuning use três fontes: protocolos, FAQs de
 médicos e **"modelos de laudos, receitas e procedimentos internos"**. As duas
@@ -264,26 +264,25 @@ primeiras estavam cobertas; a terceira existia só como arquivo morto —
 `protocolos/*.md`.
 
 Corrigido: os três templates passaram a ser documentos de primeira classe, com a
-mesma anatomia dos protocolos — frontmatter (`doc_id: TPL-001..003`, `titulo`,
+mesma anatomia dos protocolos — frontmatter (`doc_id: PROT-026..028`, `titulo`,
 `tipo: template`) e quatro seções numeradas (`1. Quando usar`,
 `2. Estrutura do documento`, `3. Exemplo preenchido`, `4. Regras de preenchimento`).
 Com isso entram nos dois caminhos sem código especial:
 
 - **RAG:** `ingest()` ganhou um segundo diretório (`templates_dir`) e indexa os 12
   chunks novos na mesma collection (100 → 112 chunks). O médico pergunta "qual a
-  estrutura da receita de alta?" e o retriever devolve `TPL-002 §2`.
+  estrutura da receita de alta?" e o retriever devolve `PROT-027 §2`.
 - **Fine-tuning:** `_exemplos_templates()` gera uma pergunta por seção mais uma do
-  documento inteiro (15 exemplos), citando `[TPL-NNN §secao]` como os protocolos.
+  documento inteiro, citando `[PROT-NNN §secao]` exatamente como os protocolos.
   `train.jsonl` foi de 150 → 165 exemplos e `docs/train_v4.jsonl` de 425 → 439.
 
 Detalhe de implementação: o esqueleto dentro da seção 2 é indentado em 4 espaços.
 Sem isso, as linhas `## Descrição` / `## Conclusão` do modelo seriam lidas como
 seções pelo `_SECAO_RE` do chunker (`^##\s+`) e estilhaçariam o documento.
 
-**Consequência para o GGUF entregue:** o modelo v4 foi treinado nos 425 exemplos
-antigos, sem a fatia TPL. Ver §18 — na prática ele cita `PROT-001` ao responder
-sobre a receita, e o guardrail (corretamente) recusa. Responder bem a perguntas
-sobre laudo/receita/procedimento exige retreinar com o dataset de 439.
+Os identificadores ficam no **mesmo namespace dos protocolos** (`PROT-026..028`,
+não `TPL-00N`) — a razão está no §22, e é o que faz isso funcionar com o modelo
+já servido, sem retreinar.
 
 ## 18. `fonte_alucinada` exigia colchete e nunca disparava
 
@@ -295,12 +294,12 @@ exatamente assim. Resultado: a checagem de fonte alucinada — que é o guardrai
 explainability, o que garante que a resposta aponta para um documento realmente
 recuperado — estava **morta em produção**.
 
-Descoberto empiricamente ao testar uma pergunta sobre `TPL-002`: o RAG trouxe o
+Descoberto empiricamente ao testar uma pergunta sobre um modelo de documento
+(quando eles ainda usavam o prefixo `TPL-`, ver §22): o RAG trouxe o
 template certo, o conteúdo da resposta veio correto, mas o modelo escreveu
-"Conforme PROT-001 §1" (alucinando o doc_id, porque nunca viu `TPL-` no treino) e
-o guardrail aprovou.
+"Conforme PROT-001 §1" (alucinando o doc_id) e o guardrail aprovou.
 
-Corrigido: `_RE_FONTE = \[?((?:PROT|TPL)-\d+)` — colchete opcional, grupo de
+Corrigido: `_RE_FONTE = \[?(PROT-\d+)` — colchete opcional, grupo de
 captura em vez de fatiar a string, e comparação normalizada em maiúsculas. A mesma
 pergunta agora regenera 2× e cai em `resposta_segura` com
 `violação de segurança: fonte_alucinada`, que é o comportamento correto para um
@@ -316,7 +315,7 @@ Observado em produção nas duas primeiras perguntas testadas (sepse: corpo §2 
 fontes §4; hipercalemia: corpo §4 / fontes §2).
 
 Corrigido: `_RE_DOC_CITADO` passou a capturar `(doc_id, secao)` —
-`((?:PROT|TPL)-\d+)(?:\s*§\s*(\d+))?` — e o novo `_docs_citados()` resolve a
+`(PROT-\d+)(?:\s*§\s*(\d+))?` — e o novo `_docs_citados()` resolve a
 citação pelo par `(doc_id, número da seção)`, caindo de volta para todos os chunks
 do documento quando a citação vem sem `§N`. A ordem de aparição no texto é
 preservada (`dict.fromkeys`). Revalidado no Docker: sepse §2→§2, hipercalemia
@@ -338,3 +337,47 @@ O `Dockerfile` já pré-baixa o modelo de embedding no build, mas o
 arquivos. Em rede com proxy/MITM isso vira `SSL: CERTIFICATE_VERIFY_FAILED` +
 5 retries — ~20 s por cold start, medidos. Como o cache já está na imagem, a
 variável é setada logo após o pré-download (antes dele quebraria o build).
+
+## 22. Modelos de documento no namespace `PROT-`, não `TPL-`
+
+Os modelos de laudo/receita/procedimento nasceram como `TPL-001..003` — prefixo
+próprio, semanticamente mais limpo. **Não funcionou**, e a razão é instrutiva.
+
+O fine-tune v4 (425 exemplos, todos citando `PROT-NNN`) fixou `PROT-` como *o*
+token de citação. Perguntado sobre a estrutura do laudo, com o `TPL-001 §2`
+recuperado e presente no contexto, o modelo respondia:
+
+> "Conforme **PROT-002** §1, o laudo deve conter identificação do paciente,
+> descrição da técnica utilizada, resultados obtidos..."
+
+Errado em três níveis: prefixo inexistente no contexto, número aleatório
+(`PROT-002` é dor torácica) e **conteúdo inventado** — não é o texto do
+documento recuperado. O prefixo desconhecido fazia o modelo descartar o
+contexto inteiro e cair no conhecimento geral.
+
+Tentativas que **não** resolveram:
+
+1. **Instrução no prompt.** Acrescentar "copie o identificador exatamente como
+   aparece no contexto" ao system prompt não mudou o comportamento — em um dos
+   casos piorou, convergindo com mais força para `PROT-001`.
+2. **Retreinar com a fatia `TPL-`.** A v5 (439 exemplos, 14 de `TPL-`) rodou
+   completa. O modelo continuou citando `PROT-` **até em prompts que estavam
+   literalmente no conjunto de treino**. A aritmética explica: 14 exemplos em
+   439 são ~1,8 passos de gradiente numa corrida de 56, contra 425 exemplos
+   reforçando `PROT-`.
+
+O que resolveu foi trocar o identificador, não o modelo: `PROT-026..028`.
+Verificado com o GGUF que já estava servido, sem nenhum retreino — 3/3 citam o
+documento certo, a seção certa, e o conteúdo é fiel ao texto do template.
+
+O custo é semântico: `PROT-` passa a significar "documento institucional
+citável" em vez de "protocolo clínico". Fica mitigado pelo frontmatter
+(`tipo: template`) e pelo título ("Modelo Institucional de Laudo de Exame"),
+que distinguem os dois tipos onde importa. Em troca, o sistema tem **um único
+namespace de citação** — uma regex de fonte alucinada, um resolvedor de fontes,
+sem ramo morto.
+
+A lição generalizável: o comportamento de citação de um modelo fine-tuned é uma
+restrição do sistema, não uma preferência. Quando o esquema de identificadores
+é escolha sua e o comportamento do modelo não é, alinhar o esquema ao modelo
+sai mais barato e mais confiável que treinar o modelo contra o próprio prior.

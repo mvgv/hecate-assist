@@ -24,7 +24,7 @@ from medassist.rag.retriever import buscar
 # A secao importa — sem ela o bloco "Fontes" nao consegue distinguir qual chunk
 # do mesmo protocolo foi usado e acaba mostrando um §N diferente do citado no
 # corpo da resposta.
-_RE_DOC_CITADO = re.compile(r"((?:PROT|TPL)-\d+)(?:\s*§\s*(\d+))?")
+_RE_DOC_CITADO = re.compile(r"(PROT-\d+)(?:\s*§\s*(\d+))?")
 
 # Meta-perguntas ("qual o protocolo de X?", "existe conduta para X?") carregam
 # ruido que dilui o embedding da consulta e faz o RAG errar o protocolo. Tira o

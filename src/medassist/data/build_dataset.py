@@ -13,12 +13,44 @@ _SPLIT_TREINO = 0.95
 
 # Perguntas por secao do modelo de documento. O {assunto} vem do titulo do
 # template (ex.: "laudo de exame") e o numero da secao vira a citacao §N.
+#
+# Tres fraseados por secao, nao um. Com um so, os modelos de documento ficavam
+# em 14 de 439 exemplos (3,2%) -- proporcao que nao sustenta o aprendizado de
+# nada: sao ~1,8 passos de gradiente numa corrida de 56. Tres fraseados poem
+# cada documento em ~13 exemplos, comparavel aos ~8 de um protocolo.
+# (Tres e o teto: a v3 degenerou reaproveitando a MESMA resposta 4x,
+# ver docs/desvios.md.)
+#
+# O "modelo de {assunto}" e proposital no lugar de "o {assunto}": evita
+# concordancia errada ("o receita medica").
 _PERGUNTAS_TEMPLATE = {
-    "1": "Quando devo usar o modelo institucional de {assunto}?",
-    "2": "Qual a estrutura do modelo institucional de {assunto}?",
-    "3": "Me mostre um exemplo preenchido de {assunto}.",
-    "4": "Quais as regras de preenchimento do modelo de {assunto}?",
+    "1": [
+        "Quando devo usar o modelo institucional de {assunto}?",
+        "Em que situações se usa o modelo de {assunto}?",
+        "Para que serve o modelo institucional de {assunto}?",
+    ],
+    "2": [
+        "Qual a estrutura do modelo institucional de {assunto}?",
+        "Quais campos o modelo de {assunto} precisa ter?",
+        "Como é organizado o modelo institucional de {assunto}?",
+    ],
+    "3": [
+        "Me mostre um exemplo preenchido de {assunto}.",
+        "Tem algum exemplo de {assunto} já preenchido?",
+        "Como fica na prática o modelo de {assunto}?",
+    ],
+    "4": [
+        "Quais as regras de preenchimento do modelo de {assunto}?",
+        "O que não pode faltar no modelo de {assunto}?",
+        "Que cuidados devo ter ao preencher o modelo de {assunto}?",
+    ],
 }
+
+# Fraseados para o documento inteiro (resposta = corpo completo).
+_PERGUNTAS_DOC_INTEIRO = [
+    "Explique o modelo {doc_id} - {titulo}.",
+    "Resuma o que diz o modelo {doc_id}.",
+]
 
 
 def _chat(pergunta: str, resposta: str) -> dict:
@@ -67,12 +99,12 @@ def _exemplos_protocolos(diretorio: Path) -> list[dict]:
 
 
 def _exemplos_templates(diretorio: Path) -> list[dict]:
-    """Exemplos a partir dos modelos de laudo, receita e procedimento (TPL-NNN).
+    """Exemplos a partir dos modelos de laudo, receita e procedimento (PROT-026..028).
 
     O enunciado da fase pede que o fine-tuning use tambem "modelos de laudos,
     receitas e procedimentos internos" — esta e a fatia que cobre esse requisito.
     Uma pergunta por secao (quando usar / estrutura / exemplo / regras) mais uma
-    do documento inteiro, todas citando [TPL-NNN §secao] como os protocolos.
+    do documento inteiro, todas citando [PROT-026..028 §secao] como os protocolos.
     """
     exemplos = []
     for arquivo in sorted(diretorio.glob("*.md")):
@@ -84,19 +116,20 @@ def _exemplos_templates(diretorio: Path) -> list[dict]:
 
         for titulo_secao, texto_secao in _dividir_em_secoes(corpo_limpo):
             numero = titulo_secao.split(".", 1)[0].strip()
-            molde = _PERGUNTAS_TEMPLATE.get(numero)
-            if not molde or not texto_secao.strip():
+            moldes = _PERGUNTAS_TEMPLATE.get(numero)
+            if not moldes or not texto_secao.strip():
                 continue
+            resposta = f"Conforme [{doc_id} §{numero}], {texto_secao.strip()}"
+            for molde in moldes:
+                exemplos.append(_chat(molde.format(assunto=assunto), resposta))
+
+        for molde in _PERGUNTAS_DOC_INTEIRO:
             exemplos.append(
                 _chat(
-                    molde.format(assunto=assunto),
-                    f"Conforme [{doc_id} §{numero}], {texto_secao.strip()}",
+                    molde.format(doc_id=doc_id, titulo=titulo),
+                    f"{corpo_limpo}\n\n[{doc_id}]",
                 )
             )
-
-        exemplos.append(
-            _chat(f"Explique o modelo {doc_id} - {titulo}.", f"{corpo_limpo}\n\n[{doc_id}]")
-        )
     return exemplos
 
 

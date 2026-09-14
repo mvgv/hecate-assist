@@ -10,7 +10,7 @@ def test_templates_viram_exemplos_de_treino():
     exemplos = _exemplos_templates(TEMPLATES_DIR)
     assert len(exemplos) >= 12
 
-    doc_ids = {"TPL-001", "TPL-002", "TPL-003"}
+    doc_ids = {"PROT-026", "PROT-027", "PROT-028"}
     citados = {
         doc_id
         for ex in exemplos
@@ -33,4 +33,4 @@ def test_build_dataset_inclui_as_tres_fatias(tmp_path):
 
     assert stats["n_exemplos"] == stats["n_treino"] + stats["n_val"]
     assert "PROT-" in treino
-    assert "TPL-" in treino + val
+    assert "PROT-02" in treino + val
